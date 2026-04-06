@@ -22,7 +22,7 @@ const Dashboard = () => {
         const token = localStorage.getItem("token");
 
         const res = await axios.get(
-          "http://localhost:5000/api/users/admin/dashboard",
+          `${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/dashboard`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

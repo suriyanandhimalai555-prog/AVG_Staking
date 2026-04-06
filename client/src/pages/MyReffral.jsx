@@ -24,7 +24,7 @@ const MyReferral = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const API = "http://localhost:5000/api/users";
+  const API = `${import.meta.env.VITE_APP_BASE_URL}/api/users`;
 
   // ================= FETCH =================
   const fetchReferrals = async () => {

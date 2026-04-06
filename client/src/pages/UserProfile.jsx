@@ -5,7 +5,7 @@ import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
 import { useNavigate } from "react-router-dom";
 
-const API = "http://localhost:5000/api/users";
+const API = `${import.meta.env.VITE_APP_BASE_URL}/api/users`;
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ const UserProfile = () => {
         axios.get(`${API}/me`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/withdrawals/summary", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/summary`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);

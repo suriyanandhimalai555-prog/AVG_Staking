@@ -73,22 +73,22 @@ const UserDashboard = () => {
           depositRes,
           teamBusinessRes,
         ] = await Promise.all([
-          axios.get("http://localhost:5000/api/withdrawals/summary", {
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/summary`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/withdrawals/my", {
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/my`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/users/my-referrals", {
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/my-referrals`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/users/my-network", {
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/my-network`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/users/my-deposits-stats", {
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/my-deposits-stats`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/users/my-team-business", {
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/my-team-business`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

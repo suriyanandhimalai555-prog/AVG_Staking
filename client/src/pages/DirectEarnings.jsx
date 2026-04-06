@@ -18,7 +18,7 @@ const DirectEarnings = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/users/admin/direct-income",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/direct-income`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

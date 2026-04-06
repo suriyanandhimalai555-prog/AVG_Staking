@@ -19,7 +19,7 @@ const Referral = () => {
       try {
         const token = localStorage.getItem("token");
 
-        const res = await axios.get("http://localhost:5000/api/users/referrals", {
+        const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/referrals`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

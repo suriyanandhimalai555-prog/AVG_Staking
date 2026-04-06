@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
 
-const API = "http://localhost:5000/api/users";
+const API = `${import.meta.env.VITE_APP_BASE_URL}/api/users`;
 
 const UserBank = () => {
   const [isOpen, setIsOpen] = useState(false);

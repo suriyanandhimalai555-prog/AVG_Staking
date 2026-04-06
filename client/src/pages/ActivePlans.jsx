@@ -20,7 +20,7 @@ const ActivePlans = () => {
     try {
       const token = localStorage.getItem('token');
 
-      const res = await axios.get('http://localhost:5000/api/user-plans/all', {
+      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -75,7 +75,7 @@ const ActivePlans = () => {
       const newStatus = plan.status === 'Active' ? 'inactive' : 'active';
 
       await axios.put(
-        `http://localhost:5000/api/user-plans/${plan.id}/status`,
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/${plan.id}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -94,7 +94,7 @@ const ActivePlans = () => {
 
       if (modalType === 'delete' && selectedPlan) {
         await axios.delete(
-          `http://localhost:5000/api/user-plans/${selectedPlan.id}`,
+          `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/${selectedPlan.id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 

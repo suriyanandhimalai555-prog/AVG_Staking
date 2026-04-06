@@ -29,10 +29,10 @@ const DepositTransactions = () => {
       const token = localStorage.getItem("token");
 
       const [usersRes, plansRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/users/dropdown/users", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/dropdown/users`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/users/dropdown/plans", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/dropdown/plans`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -48,7 +48,7 @@ const DepositTransactions = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.get("http://localhost:5000/api/user-plans/all", {
+      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

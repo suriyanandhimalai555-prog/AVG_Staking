@@ -13,7 +13,7 @@ const RewardClaims = () => {
 
   const api = useMemo(() => {
     return axios.create({
-      baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+      baseURL: import.meta.env.VITE_API_URL || `${import.meta.env.VITE_APP_BASE_URL}/api`,
       headers: {
         Authorization: `Bearer ${token}`,
       },

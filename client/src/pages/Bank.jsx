@@ -18,7 +18,7 @@ const Bank = () => {
       try {
         const token = localStorage.getItem("token");
 
-        const res = await axios.get("http://localhost:5000/api/users/banks", {
+        const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/banks`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -123,7 +123,7 @@ const Bank = () => {
       const token = localStorage.getItem("token");
 
       await axios.put(
-        `http://localhost:5000/api/users/banks/${id}/status`,
+        `${import.meta.env.VITE_APP_BASE_URL}/api/users/banks/${id}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -145,7 +145,7 @@ const Bank = () => {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`http://localhost:5000/api/users/banks/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_APP_BASE_URL}/api/users/banks/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

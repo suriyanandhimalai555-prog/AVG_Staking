@@ -4,7 +4,7 @@ import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
 import { toast } from "react-hot-toast";
 
-const API = "http://localhost:5000/api/plans/all";
+const API = `${import.meta.env.VITE_APP_BASE_URL}/api/plans/all`;
 
 const AllPlans = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -49,7 +49,7 @@ const AllPlans = () => {
       const loadingToast = toast.loading("Processing purchase...");
 
       await axios.post(
-        "http://localhost:5000/api/user-plans/buy",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/buy`,
         {
           planId: selectedPlan.id || selectedPlan.plan_id,
           amount: Number(planAmount),

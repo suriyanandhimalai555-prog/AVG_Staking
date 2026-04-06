@@ -35,10 +35,10 @@ const UserWithdraw = () => {
   const fetchData = async () => {
     try {
       const [summaryRes, withdrawRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/withdrawals/summary", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/summary`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/withdrawals/my", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/my`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -140,7 +140,7 @@ const UserWithdraw = () => {
 
     try {
       await axios.post(
-        "http://localhost:5000/api/withdrawals",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals`,
         form,
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const API = "http://localhost:5000/api/users";
+const API = `${import.meta.env.VITE_APP_BASE_URL}/api/users`;
 
 const SupportTicket = () => {
     const [searchTerm, setSearchTerm] = useState("");

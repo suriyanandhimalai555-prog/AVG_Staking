@@ -15,7 +15,7 @@ const LevelEarnings = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/users/admin/level-income",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/level-income`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

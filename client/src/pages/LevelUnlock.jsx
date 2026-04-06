@@ -5,7 +5,7 @@ import axios from "axios";
  * LevelUnlockConfig.jsx
  */
 
-const API = "http://localhost:5000/api/level-unlock";
+const API = `${import.meta.env.VITE_APP_BASE_URL}/api/level-unlock`;
 
 const LevelUnlockConfig = () => {
   const [data, setData] = useState([]);

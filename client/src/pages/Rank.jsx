@@ -5,7 +5,7 @@ import axios from "axios";
  * RankConfig.jsx
  */
 
-const API = "http://localhost:5000/api/ranks";
+const API = `${import.meta.env.VITE_APP_BASE_URL}/api/ranks`;
 
 const RankConfig = () => {
   const [data, setData] = useState([]);

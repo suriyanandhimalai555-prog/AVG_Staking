@@ -21,7 +21,7 @@ const UserDeposit = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/user-plans/deposits",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/deposits`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }

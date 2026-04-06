@@ -49,7 +49,7 @@ const Users = () => {
             const newStatus = !user.status;
 
             await axios.put(
-                `http://localhost:5000/api/users/${id}/status`,
+                `${import.meta.env.VITE_APP_BASE_URL}/api/users/${id}/status`,
                 { status: newStatus },
                 {
                     headers: { Authorization: `Bearer ${token}` }
@@ -73,7 +73,7 @@ const Users = () => {
                 const token = localStorage.getItem("token");
 
                 const res = await axios.get(
-                    "http://localhost:5000/api/users",
+                    `${import.meta.env.VITE_APP_BASE_URL}/api/users`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -110,7 +110,7 @@ const Users = () => {
             const token = localStorage.getItem("token");
 
             const res = await axios.post(
-                `http://localhost:5000/api/auth/login-as-user/${id}`,
+                `${import.meta.env.VITE_APP_BASE_URL}/api/auth/login-as-user/${id}`,
                 {},
                 {
                     headers: {
@@ -146,7 +146,7 @@ const Users = () => {
             const token = localStorage.getItem("token");
 
             await axios.put(
-                `http://localhost:5000/api/users/${editUser.id}`,
+                `${import.meta.env.VITE_APP_BASE_URL}/api/users/${editUser.id}`,
                 {
                     name: editUser.username,
                     email: editUser.email,
@@ -172,7 +172,7 @@ const Users = () => {
             const token = localStorage.getItem("token");
 
             await axios.delete(
-                `http://localhost:5000/api/users/${deleteUserId}`,
+                `${import.meta.env.VITE_APP_BASE_URL}/api/users/${deleteUserId}`,
                 {
                     headers: { Authorization: `Bearer ${token}` }
                 }

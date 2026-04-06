@@ -6,7 +6,7 @@ import axios from "axios";
  * Route: /dashboard/configuration/level
  */
 
-const API_BASE = "http://localhost:5000/api/levels"; // change only if your mounted route is different
+const API_BASE = `${import.meta.env.VITE_APP_BASE_URL}/api/levels`; // change only if your mounted route is different
 
 const LevelConfig = () => {
   const [data, setData] = useState([]);

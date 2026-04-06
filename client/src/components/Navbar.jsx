@@ -113,7 +113,7 @@ const NAVBAR = () => {
     try {
       setLoading(true);
 
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/login`, {
         user_code: loginData.user_code,
         password: loginData.password,
       });
@@ -161,7 +161,7 @@ const NAVBAR = () => {
     try {
       setLoading(true);
 
-      const res = await axios.post("http://localhost:5000/api/auth/signup", {
+      const res = await axios.post(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/signup`, {
         name,
         lastname,
         email,
@@ -199,7 +199,7 @@ const NAVBAR = () => {
       setLoading(true);
 
       const res = await axios.post(
-        "http://localhost:5000/api/auth/verify-signup-otp",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/auth/verify-signup-otp`,
         {
           signupId,   // 🔥 THIS IS THE FIX
           otp: otpData.otp,
@@ -244,7 +244,7 @@ const NAVBAR = () => {
         return toast.error("Signup data missing, please fill the form again ⚠️");
       }
 
-      await axios.post("http://localhost:5000/api/auth/signup", {
+      await axios.post(`${import.meta.env.VITE_APP_BASE_URL}/api/auth/signup`, {
         name,
         lastname,
         email,

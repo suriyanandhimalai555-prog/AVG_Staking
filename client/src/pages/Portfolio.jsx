@@ -11,7 +11,7 @@ const Portfolio = () => {
   const fetchPortfolio = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/user-plans/my", {
+      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

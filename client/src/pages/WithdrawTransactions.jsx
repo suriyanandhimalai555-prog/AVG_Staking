@@ -18,7 +18,7 @@ const WithdrawTransactions = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/withdrawals/all", {
+      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -123,7 +123,7 @@ const WithdrawTransactions = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/withdrawals/${deleteId}`, {
+      await axios.delete(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${deleteId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -148,7 +148,7 @@ const WithdrawTransactions = () => {
   const approve = async (id) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/withdrawals/${id}/status`,
+        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${id}/status`,
         { status: "APPROVED" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -162,7 +162,7 @@ const WithdrawTransactions = () => {
   const reject = async (id) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/withdrawals/${id}/status`,
+        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${id}/status`,
         { status: "REJECTED" },
         { headers: { Authorization: `Bearer ${token}` } }
       );

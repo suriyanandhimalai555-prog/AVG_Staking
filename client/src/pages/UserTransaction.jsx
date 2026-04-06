@@ -19,13 +19,13 @@ const UserTransaction = () => {
   const fetchTransactions = async () => {
     try {
       const [txRes, directRes, levelRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/user-plans/transactions", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/transactions`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/users/my-direct-income", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/my-direct-income`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/users/my-level-income", {
+        axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/my-level-income`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);

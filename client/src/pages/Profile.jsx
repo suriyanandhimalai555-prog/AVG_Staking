@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000/api/users";
+const API_BASE = `${import.meta.env.VITE_APP_BASE_URL}/api/users`;
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({

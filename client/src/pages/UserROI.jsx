@@ -17,7 +17,7 @@ const UserROI = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/user-plans/roi-history",
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/roi-history`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
