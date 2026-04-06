@@ -1,0 +1,430 @@
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { FaEllipsisV } from "react-icons/fa";
+import axios from "axios";
+
+const WithdrawTransactions = () => {
+  const [data, setData] = useState([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [rows, setRows] = useState(10);
+  const [menu, setMenu] = useState(null);
+
+  const [viewData, setViewData] = useState(null);
+  const [editData, setEditData] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+
+  const dropdownRef = useRef(null);
+  const token = localStorage.getItem("token");
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/withdrawals/all", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const formatted = (res.data || []).map((d) => {
+        const amount = Number(d.amount || 0);
+        const fee = amount * 0.1;
+        const approved = amount - fee;
+
+        return {
+          id: d.id,
+          user: `${d.name || ""} ${d.lastname || ""} (${d.user_code || "-"})`.trim(),
+          wallet: d.wallet_type || "-",
+          amount,
+          amountDisplay: `$${amount.toFixed(2)}`,
+          fee: fee.toFixed(2),
+          approved: approved.toFixed(2),
+          currency: d.currency_type || "USD",
+          proof: d.proof || d.transaction_proof || d.tx_proof || "-",
+          status: d.status || "PENDING",
+          created: d.created_at ? new Date(d.created_at).toLocaleString() : "-",
+        };
+      });
+
+      setData(formatted);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setMenu(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return data.filter((d) => {
+      return (
+        d.user.toLowerCase().includes(q) ||
+        d.wallet.toLowerCase().includes(q) ||
+        d.amountDisplay.toLowerCase().includes(q) ||
+        d.proof.toLowerCase().includes(q) ||
+        d.status.toLowerCase().includes(q)
+      );
+    });
+  }, [search, data]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / rows));
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * rows;
+    return filtered.slice(start, start + rows);
+  }, [filtered, page, rows]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, rows]);
+
+  const getPagination = () => {
+    const pages = [];
+    const maxVisible = 5;
+
+    if (totalPages <= 1) return [1];
+
+    let start = Math.max(page - 2, 1);
+    let end = Math.min(start + maxVisible - 1, totalPages);
+
+    if (end - start < maxVisible - 1) {
+      start = Math.max(end - maxVisible + 1, 1);
+    }
+
+    if (start > 1) {
+      pages.push(1);
+      if (start > 2) pages.push("...");
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (end < totalPages) {
+      if (end < totalPages - 1) pages.push("...");
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:5000/api/withdrawals/${deleteId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setDeleteId(null);
+      setMenu(null);
+      fetchData();
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveEdit = () => {
+    setData((prev) => prev.map((d) => (d.id === editData.id ? editData : d)));
+    setEditData(null);
+  };
+
+  const approve = async (id) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/withdrawals/${id}/status`,
+        { status: "APPROVED" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMenu(null);
+      fetchData();
+    } catch (err) {
+      console.error("Approve error:", err);
+    }
+  };
+
+  const reject = async (id) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/withdrawals/${id}/status`,
+        { status: "REJECTED" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMenu(null);
+      fetchData();
+    } catch (err) {
+      console.error("Reject error:", err);
+    }
+  };
+
+  return (
+    <div className="users-page">
+      <div className="users-header">
+        <div>
+          <h2>Transactions</h2>
+          <p>Withdraw Management</p>
+        </div>
+
+        <input
+          placeholder="Search by user, wallet type, proof, or status..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="table-card">
+        <h3 style={{ marginBottom: "15px" }}>Withdraw List</h3>
+
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>S.NO</th>
+              <th>USER</th>
+              <th>WALLET TYPE</th>
+              <th>REQUEST AMOUNT</th>
+              <th>TRANSACTION PROOF</th>
+              <th>STATUS</th>
+              <th>CREATED AT</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {paginated.length > 0 ? (
+              paginated.map((d, i) => (
+                <tr key={d.id}>
+                  <td>{(page - 1) * rows + i + 1}</td>
+                  <td>{d.user}</td>
+                  <td>{d.wallet}</td>
+                  <td>{d.amountDisplay}</td>
+                  <td>{d.proof}</td>
+                  <td>
+                    <span className={`status-badge ${String(d.status).toLowerCase()}`}>
+                      {d.status}
+                    </span>
+                  </td>
+                  <td>{d.created}</td>
+
+                  <td className="action-cell" style={{ position: "relative" }}>
+                    <FaEllipsisV
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setMenu(menu === d.id ? null : d.id)}
+                    />
+
+                    {menu === d.id && (
+                      <div ref={dropdownRef} className="action-dropdown">
+                        <div
+                          onClick={() => {
+                            setViewData(d);
+                            setMenu(null);
+                          }}
+                        >
+                          View
+                        </div>
+
+                        <div
+                          onClick={() => {
+                            setEditData(d);
+                            setMenu(null);
+                          }}
+                        >
+                          Edit
+                        </div>
+
+                        <div onClick={() => approve(d.id)}>Approve</div>
+                        <div onClick={() => reject(d.id)}>Reject</div>
+
+                        <div
+                          className="delete"
+                          onClick={() => {
+                            setDeleteId(d.id);
+                            setMenu(null);
+                          }}
+                        >
+                          Delete
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
+                  No withdrawals found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="pagination">
+        <div className="usrDeposit__rows">
+          Rows per page
+          <select value={rows} onChange={(e) => setRows(Number(e.target.value))}>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+
+        <div>
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            {"<"}
+          </button>
+
+          {getPagination().map((p, i) =>
+            p === "..." ? (
+              <span key={i} className="dots">
+                ...
+              </span>
+            ) : (
+              <button
+                key={i}
+                className={page === p ? "active" : ""}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            {">"}
+          </button>
+        </div>
+      </div>
+
+      {editData && (
+        <div className="wd-modal-overlay">
+          <div className="wd-modal">
+            <div className="wd-header">
+              <h2>Edit Withdraw</h2>
+              <button onClick={() => setEditData(null)}>✕</button>
+            </div>
+
+            <div className="wd-body">
+              <div className="wd-box">
+                <h4>To Details</h4>
+
+                <div className="wd-row">
+                  <span>User</span>
+                  <b>{editData.user || "-"}</b>
+                </div>
+
+                <div className="wd-row">
+                  <span>Wallet</span>
+                  <b>{editData.wallet || "-"}</b>
+                </div>
+              </div>
+
+              <div className="wd-box wd-full">
+                <h4>Transaction Details</h4>
+
+                <div className="wd-grid">
+                  <div>
+                    <span>Currency</span>
+                    <b>{editData.currency}</b>
+                  </div>
+
+                  <div>
+                    <span>Request</span>
+                    <b>${Number(editData.amount || 0).toFixed(2)}</b>
+                  </div>
+
+                  <div>
+                    <span>Fee (10%)</span>
+                    <b>${editData.fee}</b>
+                  </div>
+
+                  <div>
+                    <span>Approved</span>
+                    <b>${editData.approved}</b>
+                  </div>
+
+                  <div>
+                    <span>Status</span>
+                    <b className={`wd-status ${editData.status}`}>
+                      {editData.status}
+                    </b>
+                  </div>
+
+                  <div>
+                    <span>Created</span>
+                    <b>{editData.created}</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={saveEdit}>Save</button>
+              <button onClick={() => setEditData(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewData && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3>Withdraw Details</h3>
+              <button onClick={() => setViewData(null)}>✕</button>
+            </div>
+
+            <div className="modal-body">
+              <p><b>User:</b> {viewData.user}</p>
+              <p><b>Wallet:</b> {viewData.wallet}</p>
+              <p><b>Amount:</b> {viewData.amountDisplay}</p>
+              <p><b>Proof:</b> {viewData.proof}</p>
+              <p><b>Status:</b> {viewData.status}</p>
+              <p><b>Created:</b> {viewData.created}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteId && (
+        <div className="modal-overlay">
+          <div className="delete-modal">
+            <h3>Delete Withdraw</h3>
+            <p>Are you sure you want to delete this request?</p>
+
+            <div className="delete-buttons">
+              <button onClick={() => setDeleteId(null)}>Cancel</button>
+              <button className="btn-danger" onClick={confirmDelete}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WithdrawTransactions;
