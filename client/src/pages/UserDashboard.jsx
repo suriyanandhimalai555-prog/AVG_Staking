@@ -97,7 +97,7 @@ const UserDashboard = () => {
         setWallet({
           roi: summaryRes.data.roi || 0,
           level: summaryRes.data.level || 0,
-          direct: summaryRes.data.directReferral || 0,
+          direct: summaryRes.data.direct || 0,
         });
 
         // ✅ EARNINGS (TOTAL)

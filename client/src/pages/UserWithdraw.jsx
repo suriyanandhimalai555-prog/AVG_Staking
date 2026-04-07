@@ -12,7 +12,7 @@ const UserWithdraw = () => {
   const [wallets, setWallets] = useState({
     roi: 0,
     level: 0,
-    directReferral: 0,
+    direct: 0,
     reward: 0,
     usdtPrice: 0,
   });
@@ -296,7 +296,7 @@ const UserWithdraw = () => {
             <div className="uw2Stats">
               <div><p>ROI</p><h4>${wallets.roi}</h4></div>
               <div><p>Level</p><h4>${wallets.level}</h4></div>
-              <div><p>Direct</p><h4>${wallets.directReferral}</h4></div>
+              <div><p>Direct</p><h4>${wallets.direct}</h4></div>
               <div><p>Reward</p><h4>${wallets.reward}</h4></div>
             </div>
 
@@ -315,7 +315,7 @@ const UserWithdraw = () => {
                   <option value="roi">ROI (${wallets.roi})</option>
                   <option value="level">Level (${wallets.level})</option>
                   <option value="directReferral">
-                    Direct (${wallets.directReferral})
+                    Direct (${wallets.direct})
                   </option>
                   <option value="reward">Reward (${wallets.reward})</option>
                 </select>

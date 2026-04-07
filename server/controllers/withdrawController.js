@@ -7,14 +7,9 @@ export const getWithdrawSummary = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const [
-      roiRes,
-      directRes,
-      levelRes,
-      withdrawRes
-    ] = await Promise.all([
+    const [roiRes, directRes, levelRes, withdrawRes] = await Promise.all([
 
-      // ✅ TOTAL ROI (GROSS)
+      // ROI TOTAL
       pool.query(
         `SELECT COALESCE(SUM(total_earned),0) AS total
          FROM roi_transactions rt
@@ -23,7 +18,7 @@ export const getWithdrawSummary = async (req, res) => {
         [userId]
       ),
 
-      // ✅ TOTAL DIRECT
+      // DIRECT TOTAL
       pool.query(
         `SELECT COALESCE(SUM(amount),0) AS total
          FROM level_income
@@ -32,7 +27,7 @@ export const getWithdrawSummary = async (req, res) => {
         [userId]
       ),
 
-      // ✅ TOTAL LEVEL
+      // LEVEL TOTAL
       pool.query(
         `SELECT COALESCE(SUM(amount),0) AS total
          FROM level_income
@@ -41,19 +36,19 @@ export const getWithdrawSummary = async (req, res) => {
         [userId]
       ),
 
-      // ✅ TOTAL APPROVED WITHDRAWALS
+      // ✅ WITHDRAW (FIXED)
       pool.query(
         `SELECT
           COALESCE(SUM(amount) FILTER (
-            WHERE LOWER(status) = 'approved' AND wallet_type = 'roi'
+            WHERE LOWER(status) = 'approved' AND LOWER(wallet_type) = 'roi'
           ),0) AS roi_withdrawn,
 
           COALESCE(SUM(amount) FILTER (
-            WHERE LOWER(status) = 'approved' AND wallet_type = 'directReferral'
+            WHERE LOWER(status) = 'approved' AND LOWER(wallet_type) = 'direct'
           ),0) AS direct_withdrawn,
 
           COALESCE(SUM(amount) FILTER (
-            WHERE LOWER(status) = 'approved' AND wallet_type = 'level'
+            WHERE LOWER(status) = 'approved' AND LOWER(wallet_type) = 'level'
           ),0) AS level_withdrawn
 
         FROM withdrawals
@@ -62,30 +57,25 @@ export const getWithdrawSummary = async (req, res) => {
       )
     ]);
 
-    // 🔹 GROSS (EARNINGS)
     const roiTotal = Number(roiRes.rows[0].total || 0);
     const directTotal = Number(directRes.rows[0].total || 0);
     const levelTotal = Number(levelRes.rows[0].total || 0);
 
-    // 🔹 WITHDRAWN
     const withdrawn = withdrawRes.rows[0];
 
     const roiWithdrawn = Number(withdrawn.roi_withdrawn || 0);
     const directWithdrawn = Number(withdrawn.direct_withdrawn || 0);
     const levelWithdrawn = Number(withdrawn.level_withdrawn || 0);
 
-    // 🔹 AVAILABLE (WALLET)
     const roiAvailable = Math.max(0, roiTotal - roiWithdrawn);
     const directAvailable = Math.max(0, directTotal - directWithdrawn);
     const levelAvailable = Math.max(0, levelTotal - levelWithdrawn);
 
     res.json({
-      // ✅ WALLET (deducted)
       roi: Number(roiAvailable.toFixed(2)),
-      directReferral: Number(directAvailable.toFixed(2)),
+      direct: Number(directAvailable.toFixed(2)),
       level: Number(levelAvailable.toFixed(2)),
 
-      // ✅ EARNINGS (no deduction)
       roiTotal: Number(roiTotal.toFixed(2)),
       directTotal: Number(directTotal.toFixed(2)),
       levelTotal: Number(levelTotal.toFixed(2)),
@@ -104,7 +94,7 @@ export const getWithdrawSummary = async (req, res) => {
 export const createWithdraw = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { walletType, currencyType, amount } = req.body;
+    let { walletType, currencyType, amount } = req.body;
 
     const amt = Number(amount);
 
@@ -112,7 +102,10 @@ export const createWithdraw = async (req, res) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    if (!["roi", "level", "directReferral", "reward"].includes(walletType)) {
+    // ✅ normalize
+    walletType = walletType.toLowerCase();
+
+    if (!["roi", "level", "direct", "reward"].includes(walletType)) {
       return res.status(400).json({ message: "Invalid wallet type" });
     }
 
@@ -124,24 +117,25 @@ export const createWithdraw = async (req, res) => {
       return res.status(400).json({ message: "Minimum $20 required" });
     }
 
-    // get current available balance
-    const summaryRes = await pool.query(
-      `SELECT
-          COALESCE(SUM(total_earned),0) AS roi_gross
+    // ROI
+    const roiRes = await pool.query(
+      `SELECT COALESCE(SUM(total_earned),0) AS total
        FROM roi_transactions rt
        JOIN user_plans up ON up.id = rt.user_plan_id
        WHERE up.user_id = $1`,
       [userId]
     );
 
+    // DIRECT
     const directRes = await pool.query(
       `SELECT COALESCE(SUM(amount),0) AS total
        FROM level_income
        WHERE user_id = $1
-       AND income_type IN ('direct', 'plan_direct')`,
+       AND income_type IN ('direct','plan_direct')`,
       [userId]
     );
 
+    // LEVEL
     const levelRes = await pool.query(
       `SELECT COALESCE(SUM(amount),0) AS total
        FROM level_income
@@ -150,72 +144,57 @@ export const createWithdraw = async (req, res) => {
       [userId]
     );
 
+    // ✅ WITHDRAW CHECK (FIXED)
     const approvedRes = await pool.query(
       `SELECT
-          COALESCE(SUM(amount) FILTER (
-            WHERE UPPER(status) = 'APPROVED' AND wallet_type = 'roi'
-          ), 0) AS roi_withdrawn,
+        COALESCE(SUM(amount) FILTER (
+          WHERE LOWER(status) = 'approved' AND LOWER(wallet_type) = 'roi'
+        ),0) AS roi_withdrawn,
 
-          COALESCE(SUM(amount) FILTER (
-            WHERE UPPER(status) = 'APPROVED' AND wallet_type = 'directReferral'
-          ), 0) AS direct_withdrawn,
+        COALESCE(SUM(amount) FILTER (
+          WHERE LOWER(status) = 'approved' AND LOWER(wallet_type) = 'direct'
+        ),0) AS direct_withdrawn,
 
-          COALESCE(SUM(amount) FILTER (
-            WHERE UPPER(status) = 'APPROVED' AND wallet_type = 'level'
-          ), 0) AS level_withdrawn,
+        COALESCE(SUM(amount) FILTER (
+          WHERE LOWER(status) = 'approved' AND LOWER(wallet_type) = 'level'
+        ),0) AS level_withdrawn
 
-          COALESCE(SUM(amount) FILTER (
-            WHERE UPPER(status) = 'APPROVED' AND wallet_type = 'reward'
-          ), 0) AS reward_withdrawn
        FROM withdrawals
        WHERE user_id = $1`,
       [userId]
     );
 
-    const roiAvailable = Math.max(
-      0,
-      Number(summaryRes.rows[0].roi_gross || 0) -
-      Number(approvedRes.rows[0].roi_withdrawn || 0)
-    );
+    const roiAvailable =
+      Number(roiRes.rows[0].total) - Number(approvedRes.rows[0].roi_withdrawn);
 
-    const directAvailable = Math.max(
-      0,
-      Number(directRes.rows[0].total || 0) -
-      Number(approvedRes.rows[0].direct_withdrawn || 0)
-    );
+    const directAvailable =
+      Number(directRes.rows[0].total) - Number(approvedRes.rows[0].direct_withdrawn);
 
-    const levelAvailable = Math.max(
-      0,
-      Number(levelRes.rows[0].total || 0) -
-      Number(approvedRes.rows[0].level_withdrawn || 0)
-    );
-
-    const rewardAvailable = Math.max(
-      0,
-      0 - Number(approvedRes.rows[0].reward_withdrawn || 0)
-    );
+    const levelAvailable =
+      Number(levelRes.rows[0].total) - Number(approvedRes.rows[0].level_withdrawn);
 
     const availableMap = {
       roi: roiAvailable,
-      directReferral: directAvailable,
+      direct: directAvailable,
       level: levelAvailable,
-      reward: rewardAvailable,
+      reward: 0,
     };
 
     if (amt > availableMap[walletType]) {
       return res.status(400).json({
-        message: `Insufficient balance. Available ${availableMap[walletType].toFixed(2)}`,
+        message: `Insufficient balance. Available ${availableMap[walletType].toFixed(2)}`
       });
     }
 
     await pool.query(
       `INSERT INTO withdrawals
        (user_id, wallet_type, currency_type, amount, status)
-       VALUES ($1, $2, $3, $4, 'PENDING')`,
+       VALUES ($1, $2, $3, $4, 'pending')`,
       [userId, walletType, currencyType, amt]
     );
 
     res.json({ message: "Withdraw request created" });
+
   } catch (err) {
     console.error("createWithdraw error:", err);
     res.status(500).json({ error: err.message });

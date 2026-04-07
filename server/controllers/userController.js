@@ -511,7 +511,7 @@ export const getMyNetwork = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 🔹 get root user
+    // get root user
     const rootRes = await pool.query(
       `SELECT id, name, lastname, user_code FROM users WHERE id=$1`,
       [userId]
@@ -523,26 +523,31 @@ export const getMyNetwork = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 🔹 wallet calc (same as before)
+    // ✅ NOW THIS RETURNS DEPOSIT AMOUNT FROM user_plans
     const getWallet = async (uid) => {
-      const result = await pool.query(`
-        SELECT 
-          COALESCE(SUM(total_earned),0) AS roi
-        FROM roi_transactions
+      const result = await pool.query(
+        `
+        SELECT COALESCE(SUM(amount), 0) AS deposit
+        FROM user_plans
         WHERE user_id = $1
-      `, [uid]);
+        `,
+        [uid]
+      );
 
-      return Number(result.rows[0].roi || 0);
+      return Number(result.rows[0].deposit || 0);
     };
 
-    // 🔥 recursive build using referrals table
+    // recursive build using referrals table
     const buildTree = async (parentId) => {
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT u.id, u.name, u.lastname, u.user_code
         FROM referrals r
         JOIN users u ON u.id = r.referred_user_id
         WHERE r.referrer_user_id = $1
-      `, [parentId]);
+        `,
+        [parentId]
+      );
 
       return Promise.all(
         result.rows.map(async (child) => ({
@@ -566,7 +571,6 @@ export const getMyNetwork = async (req, res) => {
     };
 
     res.json(tree);
-
   } catch (err) {
     console.error("getMyNetwork error:", err);
     res.status(500).json({ error: err.message });

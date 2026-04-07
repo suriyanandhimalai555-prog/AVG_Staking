@@ -19,7 +19,7 @@ const MyNetwork = () => {
       name: node.name || "User",
       attributes: {
         userCode: node.user_code,
-        wallet: `₹${node.wallet || 0}`,
+        wallet: `₹${Number(node.wallet || 0).toFixed(2)}`,
       },
       children: node.children?.map(formatTree) || [],
     };
@@ -77,14 +77,12 @@ const MyNetwork = () => {
 
                         <div className="nodeText">
                           <div className="name">{nodeDatum.name}</div>
-                          <div className="id">
-                            {nodeDatum.attributes?.userCode}
-                          </div>
+                          <div className="id">{nodeDatum.attributes?.userCode}</div>
                         </div>
                       </div>
 
-                      <div className="wallet">
-                        {nodeDatum.attributes?.wallet}
+                      <div className="wallet" style={{ marginTop: "10px", color: "#555" }}>
+                        Deposit: {nodeDatum.attributes?.wallet}
                       </div>
                     </div>
                   </foreignObject>
