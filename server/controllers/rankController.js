@@ -87,12 +87,6 @@ export const getRanksUser = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const userRes = await pool.query(
-      "SELECT user_code FROM users WHERE id = $1",
-      [userId]
-    );
-    const userCode = userRes.rows[0]?.user_code;
-
     const rankRes = await pool.query(`
       SELECT id, target_amount, reward
       FROM rank_config
@@ -103,27 +97,39 @@ export const getRanksUser = async (req, res) => {
     const ranks = rankRes.rows;
     if (ranks.length === 0) return res.json([]);
 
+    // ✅ DIRECT USERS FROM referrals (FIXED)
     const directRes = await pool.query(
-      `SELECT id, name, lastname, user_code
-       FROM users
-       WHERE referred_by = $1`,
-      [userCode]
+      `
+      SELECT u.id, u.name, u.lastname
+      FROM referrals r
+      JOIN users u ON u.id = r.referred_user_id
+      WHERE r.referrer_user_id = $1
+      `,
+      [userId]
     );
 
+    // ✅ RECURSIVE USING referrals (FIXED)
     const getBranchBusiness = async (rootId) => {
       const result = await pool.query(
         `
         WITH RECURSIVE branch AS (
-          SELECT id, user_code FROM users WHERE id = $1
+          SELECT referred_user_id AS id
+          FROM referrals
+          WHERE referrer_user_id = $1
+
           UNION ALL
-          SELECT u.id, u.user_code
-          FROM users u
-          JOIN branch b ON u.referred_by = b.user_code
+
+          SELECT r.referred_user_id
+          FROM referrals r
+          JOIN branch b ON r.referrer_user_id = b.id
         )
         SELECT COALESCE(SUM(amount),0) AS total
         FROM user_plans
-        WHERE user_id IN (SELECT id FROM branch)
-      `,
+        WHERE user_id IN (
+          SELECT id FROM branch
+          UNION SELECT $1
+        )
+        `,
         [rootId]
       );
 
@@ -141,7 +147,6 @@ export const getRanksUser = async (req, res) => {
       });
     }
 
-    // 🔥 SORT (VERY IMPORTANT)
     branches.sort((a, b) => b.business - a.business);
 
     const results = [];
@@ -155,64 +160,32 @@ export const getRanksUser = async (req, res) => {
 
       const timeline = [];
 
-      // 🥇 40% → Top 1
       const firstLeg = branches[0];
-      if (firstLeg && firstLeg.business >= milestones[0].amount) {
-        timeline.push({
-          percent: 40,
-          amount: milestones[0].amount,
-          achieved: true,
-          by: firstLeg.name,
-        });
-      } else {
-        timeline.push({
-          percent: 40,
-          amount: milestones[0].amount,
-          achieved: false,
-          by: null,
-        });
-      }
+      timeline.push({
+        percent: 40,
+        amount: milestones[0].amount,
+        achieved: firstLeg && firstLeg.business >= milestones[0].amount,
+        by: firstLeg && firstLeg.business >= milestones[0].amount ? firstLeg.name : null,
+      });
 
-      // 🥈 30% → Top 2
       const secondLeg = branches[1];
-      if (secondLeg && secondLeg.business >= milestones[1].amount) {
-        timeline.push({
-          percent: 30,
-          amount: milestones[1].amount,
-          achieved: true,
-          by: secondLeg.name,
-        });
-      } else {
-        timeline.push({
-          percent: 30,
-          amount: milestones[1].amount,
-          achieved: false,
-          by: null,
-        });
-      }
+      timeline.push({
+        percent: 30,
+        amount: milestones[1].amount,
+        achieved: secondLeg && secondLeg.business >= milestones[1].amount,
+        by: secondLeg && secondLeg.business >= milestones[1].amount ? secondLeg.name : null,
+      });
 
-      // 🥉 30% → Remaining combined
-      const remainingLegs = branches.slice(2);
-      const remainingBusiness = remainingLegs.reduce(
-        (sum, b) => sum + b.business,
-        0
-      );
+      const remainingBusiness = branches
+        .slice(2)
+        .reduce((sum, b) => sum + b.business, 0);
 
-      if (remainingBusiness >= milestones[2].amount) {
-        timeline.push({
-          percent: 30,
-          amount: milestones[2].amount,
-          achieved: true,
-          by: "Combined Team",
-        });
-      } else {
-        timeline.push({
-          percent: 30,
-          amount: milestones[2].amount,
-          achieved: false,
-          by: null,
-        });
-      }
+      timeline.push({
+        percent: 30,
+        amount: milestones[2].amount,
+        achieved: remainingBusiness >= milestones[2].amount,
+        by: remainingBusiness >= milestones[2].amount ? "Combined Team" : null,
+      });
 
       const progress = timeline
         .filter((t) => t.achieved)
@@ -220,6 +193,7 @@ export const getRanksUser = async (req, res) => {
 
       const unlocked = progress >= rank.target_amount;
 
+      // ✅ KEEP YOUR ORIGINAL STATUS LOGIC
       const rewardRow = await pool.query(
         `SELECT status
          FROM user_rewards
@@ -239,6 +213,7 @@ export const getRanksUser = async (req, res) => {
         timeline,
       });
 
+      // ✅ IMPORTANT: KEEP THIS (YOUR ORIGINAL LOGIC)
       if (status !== "approved") break;
     }
 
@@ -267,20 +242,28 @@ export const getAllUsersRewards = async (req, res) => {
       ORDER BY id DESC
     `);
 
+    // ✅ FIXED: referrals based recursion
     const getBranchBusiness = async (rootId) => {
       const result = await pool.query(
         `
         WITH RECURSIVE branch AS (
-          SELECT id, user_code FROM users WHERE id = $1
+          SELECT referred_user_id AS id
+          FROM referrals
+          WHERE referrer_user_id = $1
+
           UNION ALL
-          SELECT u.id, u.user_code
-          FROM users u
-          JOIN branch b ON u.referred_by = b.user_code
+
+          SELECT r.referred_user_id
+          FROM referrals r
+          JOIN branch b ON r.referrer_user_id = b.id
         )
         SELECT COALESCE(SUM(amount),0) AS total
         FROM user_plans
-        WHERE user_id IN (SELECT id FROM branch)
-      `,
+        WHERE user_id IN (
+          SELECT id FROM branch
+          UNION SELECT $1
+        )
+        `,
         [rootId]
       );
 
@@ -290,11 +273,15 @@ export const getAllUsersRewards = async (req, res) => {
     const finalData = [];
 
     for (const user of usersRes.rows) {
+      // ✅ FIXED: direct users via referrals
       const directRes = await pool.query(
-        `SELECT id, name, lastname, user_code
-         FROM users
-         WHERE referred_by = $1`,
-        [user.user_code]
+        `
+        SELECT u.id, u.name, u.lastname
+        FROM referrals r
+        JOIN users u ON u.id = r.referred_user_id
+        WHERE r.referrer_user_id = $1
+        `,
+        [user.id]
       );
 
       const branches = [];
@@ -308,7 +295,6 @@ export const getAllUsersRewards = async (req, res) => {
         });
       }
 
-      // 🔥 SORT
       branches.sort((a, b) => b.business - a.business);
 
       for (const rank of ranks) {
@@ -321,45 +307,28 @@ export const getAllUsersRewards = async (req, res) => {
         const timeline = [];
 
         const firstLeg = branches[0];
-        if (firstLeg && firstLeg.business >= milestones[0].amount) {
-          timeline.push({
-            percent: 40,
-            amount: milestones[0].amount,
-            achieved: true,
-            by: firstLeg.name,
-          });
-        } else {
-          timeline.push({ percent: 40, amount: milestones[0].amount, achieved: false, by: null });
-        }
+        timeline.push({
+          percent: 40,
+          amount: milestones[0].amount,
+          achieved: firstLeg && firstLeg.business >= milestones[0].amount,
+        });
 
         const secondLeg = branches[1];
-        if (secondLeg && secondLeg.business >= milestones[1].amount) {
-          timeline.push({
-            percent: 30,
-            amount: milestones[1].amount,
-            achieved: true,
-            by: secondLeg.name,
-          });
-        } else {
-          timeline.push({ percent: 30, amount: milestones[1].amount, achieved: false, by: null });
-        }
+        timeline.push({
+          percent: 30,
+          amount: milestones[1].amount,
+          achieved: secondLeg && secondLeg.business >= milestones[1].amount,
+        });
 
-        const remainingLegs = branches.slice(2);
-        const remainingBusiness = remainingLegs.reduce(
-          (sum, b) => sum + b.business,
-          0
-        );
+        const remainingBusiness = branches
+          .slice(2)
+          .reduce((sum, b) => sum + b.business, 0);
 
-        if (remainingBusiness >= milestones[2].amount) {
-          timeline.push({
-            percent: 30,
-            amount: milestones[2].amount,
-            achieved: true,
-            by: "Combined Team",
-          });
-        } else {
-          timeline.push({ percent: 30, amount: milestones[2].amount, achieved: false, by: null });
-        }
+        timeline.push({
+          percent: 30,
+          amount: milestones[2].amount,
+          achieved: remainingBusiness >= milestones[2].amount,
+        });
 
         const progress = timeline
           .filter((t) => t.achieved)
@@ -367,6 +336,7 @@ export const getAllUsersRewards = async (req, res) => {
 
         const unlocked = progress >= rank.target_amount;
 
+        // ✅ KEEP YOUR ORIGINAL STATUS FLOW
         const rewardRow = await pool.query(
           `SELECT status
            FROM user_rewards
@@ -377,19 +347,23 @@ export const getAllUsersRewards = async (req, res) => {
 
         const status = rewardRow.rows[0]?.status || "pending";
 
-        finalData.push({
-          userId: user.id,
-          userCode: user.user_code,
-          username: `${user.name} ${user.lastname}`,
-          phone: user.phone,
-          reward: rank.reward,
-          target_amount: rank.target_amount,
-          progress,
-          unlocked,
-          status,
-          timeline,
-        });
+        // ✅ 🔥 IMPORTANT FILTER
+        // show ONLY achieved users
+        if (unlocked) {
+          finalData.push({
+            userId: user.id,
+            userCode: user.user_code,
+            username: `${user.name} ${user.lastname}`,
+            phone: user.phone,
+            reward: rank.reward,
+            target_amount: rank.target_amount,
+            progress,
+            unlocked,
+            status,
+          });
+        }
 
+        // ✅ KEEP YOUR SEQUENTIAL LOGIC
         if (status !== "approved") break;
       }
     }
@@ -476,10 +450,23 @@ const attachMonthsToClaims = async (rows) => {
       [row.claim_id]
     );
 
-    row.claim_months = monthsRes.rows.map((m) => ({
+    const isClosed = row.claim_status === "closed";
+
+    let months = monthsRes.rows.map((m) => ({
       ...m,
       amount: Number(m.amount || 0),
     }));
+
+    // ✅ AFTER CLOSE → REMOVE EMPTY MONTHS
+    if (isClosed) {
+      months = months.filter(
+        (m) =>
+          m.status === "completed" || // paid months
+          m.transaction_id // safety check
+      );
+    }
+
+    row.claim_months = months;
   }
 
   return rows;
@@ -489,28 +476,28 @@ export const getRewardClaimsAdmin = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
-  COALESCE(rc.id, 0) AS claim_id,
-  ur.user_id,
-  u.name,
-  u.lastname,
-  u.phone,
-  u.user_code,
-  ur.reward,
-  ur.target_amount,
-  rc.monthly_amount,
-  rc.months_count,
-  rc.start_date,
-  rc.status AS claim_status,
-  ur.status AS reward_status,
-  ur.progress
-FROM user_rewards ur
-INNER JOIN users u ON u.id = ur.user_id
-LEFT JOIN reward_claims rc
-  ON rc.user_id = ur.user_id
- AND rc.reward = ur.reward
- AND rc.target_amount = ur.target_amount
-WHERE ur.status = 'approved'
-ORDER BY ur.user_id DESC
+        COALESCE(rc.id, 0) AS claim_id,
+        ur.user_id,
+        u.name,
+        u.lastname,
+        u.phone,
+        u.user_code,
+        ur.reward,
+        ur.target_amount,
+        rc.monthly_amount,
+        rc.months_count,
+        rc.start_date,
+        rc.status AS claim_status,
+        ur.status AS reward_status,
+        ur.progress
+      FROM user_rewards ur
+      INNER JOIN users u ON u.id = ur.user_id
+      LEFT JOIN reward_claims rc
+        ON rc.user_id = ur.user_id
+       AND rc.reward = ur.reward
+       AND rc.target_amount = ur.target_amount
+      WHERE ur.status = 'approved'
+      ORDER BY ur.user_id DESC
     `);
 
     const rows = await attachMonthsToClaims(result.rows);
@@ -673,6 +660,21 @@ export const updateClaimMonthStatus = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
+    // ✅ CHECK CLAIM STATUS
+    const check = await pool.query(
+      `
+      SELECT rc.status
+      FROM reward_claim_months m
+      JOIN reward_claims rc ON rc.id = m.claim_id
+      WHERE m.id = $1
+      `,
+      [monthId]
+    );
+
+    if (check.rows[0]?.status === "closed") {
+      return res.status(400).json({ message: "Claim already closed" });
+    }
+
     await pool.query(
       `
       UPDATE reward_claim_months
@@ -684,7 +686,47 @@ export const updateClaimMonthStatus = async (req, res) => {
       [transaction_id || null, status, monthId]
     );
 
-    res.json({ message: "Month status updated" });
+    res.json({ message: "Month updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const closeRewardClaim = async (req, res) => {
+  try {
+    const { claimId } = req.body;
+
+    if (!claimId) {
+      return res.status(400).json({ message: "claimId required" });
+    }
+
+    const claimRes = await pool.query(
+      `SELECT id, status FROM reward_claims WHERE id = $1`,
+      [claimId]
+    );
+
+    if (claimRes.rows.length === 0) {
+      return res.status(404).json({ message: "Claim not found" });
+    }
+
+    if (claimRes.rows[0].status === "closed") {
+      return res.json({ message: "Already closed" });
+    }
+
+    // ✅ CLOSE CLAIM
+    await pool.query(
+      `
+      UPDATE reward_claims
+      SET status = 'closed',
+          closed_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+      [claimId]
+    );
+
+    res.json({ message: "Claim closed successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

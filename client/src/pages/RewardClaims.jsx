@@ -6,6 +6,7 @@ const RewardClaims = () => {
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState("");
   const [monthSavingId, setMonthSavingId] = useState("");
+  const [closingId, setClosingId] = useState("");
   const [form, setForm] = useState({});
   const [monthForm, setMonthForm] = useState({});
 
@@ -13,7 +14,9 @@ const RewardClaims = () => {
 
   const api = useMemo(() => {
     return axios.create({
-      baseURL: import.meta.env.VITE_API_URL || `${import.meta.env.VITE_APP_BASE_URL}/api`,
+      baseURL:
+        import.meta.env.VITE_API_URL ||
+        `${import.meta.env.VITE_APP_BASE_URL}/api`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -24,7 +27,6 @@ const RewardClaims = () => {
     try {
       setLoading(true);
       const res = await api.get("/ranks/claims/admin");
-      console.log("DATA:", res.data); // DEBUG
       setRows(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
@@ -38,8 +40,7 @@ const RewardClaims = () => {
     fetchData();
   }, []);
 
-  const keyOf = (row) =>
-    `${row.user_id}-${row.reward}-${row.target_amount}`;
+  const keyOf = (row) => `${row.user_id}-${row.reward}-${row.target_amount}`;
 
   const handleChange = (key, field, value) => {
     setForm((prev) => ({
@@ -62,6 +63,8 @@ const RewardClaims = () => {
   };
 
   const handleSave = async (row) => {
+    if (row.claim_status === "closed") return;
+
     const key = keyOf(row);
     const current = form[key] || {};
 
@@ -82,9 +85,27 @@ const RewardClaims = () => {
 
       fetchData();
     } catch (err) {
-      alert("Error saving");
+      alert(err?.response?.data?.message || "Error saving");
     } finally {
       setSavingKey("");
+    }
+  };
+
+  const handleCloseClaim = async (row) => {
+    if (!row.claim_id || row.claim_status === "closed") return;
+
+    try {
+      setClosingId(row.claim_id);
+
+      await api.post("/ranks/claims/close", {
+        claimId: row.claim_id,
+      });
+
+      fetchData();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Error closing claim");
+    } finally {
+      setClosingId("");
     }
   };
 
@@ -102,7 +123,7 @@ const RewardClaims = () => {
 
       fetchData();
     } catch (err) {
-      alert("Error updating month");
+      alert(err?.response?.data?.message || "Error updating month");
     } finally {
       setMonthSavingId("");
     }
@@ -121,11 +142,10 @@ const RewardClaims = () => {
           {rows.map((row) => {
             const key = keyOf(row);
             const local = form[key] || {};
+            const isClosed = row.claim_status === "closed";
 
             return (
               <div className="rc-card" key={key}>
-
-                {/* HEADER */}
                 <div className="rc-card-header">
                   <div>
                     <h3>{row.reward}</h3>
@@ -134,12 +154,30 @@ const RewardClaims = () => {
                     </p>
                   </div>
 
-                  <div className="rc-target">
-                    ₹{row.target_amount}
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div className="rc-target">₹{row.target_amount}</div>
+
+                    <span
+                      className={`statusBadge ${
+                        isClosed ? "rejected" : "approved"
+                      }`}
+                    >
+                      {isClosed ? "Closed" : "Active"}
+                    </span>
+
+                    {!isClosed && row.claim_id > 0 && (
+                      <button
+                        className="rc-save-btn"
+                        onClick={() => handleCloseClaim(row)}
+                        disabled={closingId === row.claim_id}
+                        style={{ background: "#b91c1c" }}
+                      >
+                        {closingId === row.claim_id ? "Closing..." : "Close Process"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* FORM */}
                 <div className="rc-card-form">
                   <div className="rc-field">
                     <label>Monthly</label>
@@ -150,6 +188,7 @@ const RewardClaims = () => {
                       onChange={(e) =>
                         handleChange(key, "monthly_amount", e.target.value)
                       }
+                      disabled={isClosed}
                     />
                   </div>
 
@@ -162,6 +201,7 @@ const RewardClaims = () => {
                       onChange={(e) =>
                         handleChange(key, "start_date", e.target.value)
                       }
+                      disabled={isClosed}
                     />
                   </div>
 
@@ -174,19 +214,23 @@ const RewardClaims = () => {
                       onChange={(e) =>
                         handleChange(key, "months_count", e.target.value)
                       }
+                      disabled={isClosed}
                     />
                   </div>
 
                   <button
                     className="rc-save-btn"
                     onClick={() => handleSave(row)}
-                    disabled={savingKey === key}
+                    disabled={savingKey === key || isClosed}
                   >
-                    {savingKey === key ? "Saving..." : "Save"}
+                    {isClosed
+                      ? "Closed"
+                      : savingKey === key
+                      ? "Saving..."
+                      : "Save"}
                   </button>
                 </div>
 
-                {/* MONTH TABLE */}
                 {row.claim_months && row.claim_months.length > 0 && (
                   <div className="rc-month-box">
                     <table className="rc-table">
@@ -204,6 +248,7 @@ const RewardClaims = () => {
                       <tbody>
                         {row.claim_months.map((m) => {
                           const monthLocal = monthForm[m.id] || {};
+                          const monthStatus = m.status || "pending";
 
                           return (
                             <tr key={m.id}>
@@ -211,7 +256,9 @@ const RewardClaims = () => {
 
                               <td>
                                 {m.due_date
-                                  ? new Date(m.due_date).toLocaleDateString("en-IN")
+                                  ? new Date(m.due_date).toLocaleDateString(
+                                      "en-IN"
+                                    )
                                   : "-"}
                               </td>
 
@@ -232,13 +279,14 @@ const RewardClaims = () => {
                                       e.target.value
                                     )
                                   }
+                                  disabled={isClosed && monthStatus === "stopped"}
                                 />
                               </td>
 
                               <td>
                                 <select
                                   className="rc-select"
-                                  value={monthLocal.status ?? m.status ?? "pending"}
+                                  value={monthLocal.status ?? monthStatus}
                                   onChange={(e) =>
                                     handleMonthChange(
                                       m.id,
@@ -246,9 +294,13 @@ const RewardClaims = () => {
                                       e.target.value
                                     )
                                   }
+                                  disabled={isClosed && monthStatus === "stopped"}
                                 >
                                   <option value="pending">Pending</option>
                                   <option value="completed">Completed</option>
+                                  {monthStatus === "stopped" && (
+                                    <option value="stopped">Stopped</option>
+                                  )}
                                 </select>
                               </td>
 
@@ -256,8 +308,12 @@ const RewardClaims = () => {
                                 <button
                                   className="rc-update-btn"
                                   onClick={() => handleMonthSave(m.id)}
+                                  disabled={
+                                    monthSavingId === m.id ||
+                                    (isClosed && monthStatus === "stopped")
+                                  }
                                 >
-                                  Update
+                                  {monthSavingId === m.id ? "Saving..." : "Update"}
                                 </button>
                               </td>
                             </tr>
@@ -267,7 +323,6 @@ const RewardClaims = () => {
                     </table>
                   </div>
                 )}
-
               </div>
             );
           })}
