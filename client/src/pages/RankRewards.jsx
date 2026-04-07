@@ -29,12 +29,13 @@ const RankRewards = () => {
       const formatted = (res.data || []).map((item, index) => ({
         sno: index + 1,
         userId: item.userId,
+        userCode: item.userCode || "-",
         rewardName: item.reward,
         target_amount: item.target_amount,
         progress: item.progress,
         username: item.username || "-",
         phoneNo: item.phone || "-",
-        reward: `${item.reward} (₹${item.progress} / ₹${item.target_amount})`,
+        reward: `${item.reward} ($${item.progress} / $${item.target_amount})`,
         status: item.status || "pending",
         createdAt: "-",
       }));
@@ -349,7 +350,10 @@ const RankRewards = () => {
               pageItems.map((reward, i) => (
                 <tr key={reward.sno}>
                   <td>{startIndex + i + 1}</td>
-                  <td>{reward.username}</td>
+                  <td style={{ display: "flex", flexDirection: "column" }}>
+                    {reward.username}
+                    <small>{reward.userCode}</small>
+                  </td>
                   <td>{reward.phoneNo}</td>
                   <td className="rr-reward-cell">{reward.reward}</td>
                   <td>

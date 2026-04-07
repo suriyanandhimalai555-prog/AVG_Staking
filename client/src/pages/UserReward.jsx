@@ -61,7 +61,7 @@ const UserReward = () => {
                     <FaTrophy className="rewardIcon" />
                     <div>
                       <h3>{reward.reward}</h3>
-                      <p>Target: ₹{reward.target_amount}</p>
+                      <p>Target: ${reward.target_amount}</p>
                     </div>
                   </div>
 
@@ -96,7 +96,7 @@ const UserReward = () => {
 
                     <tbody>
                       <tr>
-                        <td>₹{reward.target_amount}</td>
+                        <td>${reward.target_amount}</td>
                         <td>{reward.reward}</td>
 
                         {/* TIMELINE */}
@@ -114,7 +114,7 @@ const UserReward = () => {
                                 </div>
 
                                 <div className="timelineText">
-                                  <strong>{t.percent}%</strong> - ₹{t.amount}
+                                  <strong>{t.percent}%</strong> - ${t.amount}
                                   <br />
 
                                   {t.achieved ? (
@@ -160,7 +160,7 @@ const UserReward = () => {
                   <div className="progressHead">
                     <span>Progress</span>
                     <span>
-                      ₹{reward.progress} / ₹{reward.target_amount}
+                      ${reward.progress} / ${reward.target_amount}
                     </span>
                   </div>
 

@@ -19,20 +19,22 @@ const Users = () => {
     const [editUser, setEditUser] = useState(null);
 
     const filteredUsers = useMemo(() => {
-        return users.filter((u) => {
-            const username = u.username?.toLowerCase() || "";
-            const email = u.email?.toLowerCase() || "";
-            const phone = u.phone || "";
+    const searchValue = search.toLowerCase();
 
-            const searchValue = search.toLowerCase();
+    return users.filter((u) => {
+        const username = u.username?.toLowerCase() || "";
+        const email = u.email?.toLowerCase() || "";
+        const phone = u.phone || "";
+        const userCode = u.userCode?.toLowerCase() || ""; // ✅ ADD
 
-            return (
-                username.includes(searchValue) ||
-                email.includes(searchValue) ||
-                phone.includes(search)
-            );
-        });
-    }, [search, users]);
+        return (
+            username.includes(searchValue) ||
+            email.includes(searchValue) ||
+            phone.includes(search) ||
+            userCode.includes(searchValue)   // ✅ ADD THIS LINE
+        );
+    });
+}, [search, users]);
 
     const totalPages = Math.max(1, Math.ceil(filteredUsers.length / rowsPerPage));
 

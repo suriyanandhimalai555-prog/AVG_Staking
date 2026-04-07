@@ -379,6 +379,7 @@ export const getAllUsersRewards = async (req, res) => {
 
         finalData.push({
           userId: user.id,
+          userCode: user.user_code,
           username: `${user.name} ${user.lastname}`,
           phone: user.phone,
           reward: rank.reward,
