@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { formatDateTimeIST } from "../utils/dateFormat";
 
 /**
  * DirectEarnings.jsx
@@ -32,9 +33,7 @@ const DirectEarnings = () => {
         toUser: item.to_user || "-",
         type: item.type || "-",
         amount: `$${Number(item.income || 0).toFixed(2)}`,
-        createdAt: item.created_at
-          ? new Date(item.created_at).toLocaleString()
-          : "-",
+        createdAt: formatDateTimeIST(item.created_at),
       }));
 
       setData(formatted);

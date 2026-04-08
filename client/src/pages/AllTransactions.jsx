@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { FaEllipsisV } from "react-icons/fa";
 import axios from "axios";
+import { formatDateTimeIST } from "../utils/dateFormat";
 
 const AllTransactions = () => {
   const [data, setData] = useState([]);
@@ -166,7 +167,7 @@ const AllTransactions = () => {
                   <td>{d.to}</td>
                   <td><span className="type-badge">{d.type}</span></td>
                   <td>{d.amount}</td>
-                  <td>{new Date(d.created).toLocaleString()}</td>
+                  <td>{formatDateTimeIST(d.created)}</td>
                 </tr>
               ))
             )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
+import { formatDateTimeIST } from "../utils/dateFormat";
 
 const UserTransaction = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -185,11 +186,7 @@ const UserTransaction = () => {
                       </td>
                       <td>{item.type}</td>
                       <td className="utxAmount">{item.amount}</td>
-                      <td>
-                        {item.date
-                          ? new Date(item.date).toLocaleString()
-                          : "-"}
-                      </td>
+                      <td>{formatDateTimeIST(item.date)}</td>
                     </tr>
                   ))
                 )}

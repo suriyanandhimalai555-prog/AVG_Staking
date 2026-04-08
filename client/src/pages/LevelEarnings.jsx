@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { formatDateTimeIST } from "../utils/dateFormat";
 
 const LevelEarnings = () => {
   const [data, setData] = useState([]);
@@ -29,9 +30,7 @@ const LevelEarnings = () => {
         toUser: `${item.name || ""} ${item.lastname || ""} (${item.user_code || "-"})`,
         type: `Level ${item.level} Income`,
         amount: `$${Number(item.income || 0).toFixed(2)}`,
-        createdAt: item.created_at
-          ? new Date(item.created_at).toLocaleString()
-          : "-",
+        createdAt: formatDateTimeIST(item.created_at),
       }));
 
       setData(formatted);

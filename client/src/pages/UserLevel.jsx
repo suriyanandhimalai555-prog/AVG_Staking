@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
+import { formatDateTimeIST } from "../utils/dateFormat";
 
 const UserDirect = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -152,9 +153,7 @@ const UserDirect = () => {
                       <td className="udiAmount">{item.amount}</td>
 
                       <td>
-                        {item.date
-                          ? new Date(item.date).toLocaleString()
-                          : "-"}
+                        {formatDateTimeIST(item.date)}
                       </td>
                     </tr>
                   ))
