@@ -24,7 +24,7 @@ const Topbar = ({ isOpen, setIsOpen }) => {
 
         // ✅ USE NET VALUES ONLY
         const roi = Number(summaryRes.data.roi || 0);
-        const direct = Number(summaryRes.data.directReferral || 0);
+        const direct = Number(summaryRes.data.direct || 0);
         const level = Number(summaryRes.data.level || 0);
 
         const totalWallet = roi + direct + level;
