@@ -15,30 +15,24 @@ dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: { rejectUnauthorized: false },
 });
 
-/* CLEAN */
 const clean = (val) => {
-  if (!val) return null;
+  if (val === null || val === undefined || val === "") return null;
   return val.toString().trim();
 };
 
-/* NUMBER */
 const parseNumber = (val) => {
-  if (!val) return 0;
+  if (val === null || val === undefined || val === "") return 0;
   const num = String(val).replace(/[^\d.]/g, "");
   return parseFloat(num) || 0;
 };
 
-/* ✅ STRONG DATE PARSER */
 const parseDate = (val) => {
   if (!val) return null;
 
   try {
-    // Excel numeric date
     if (typeof val === "number") {
       return new Date((val - 25569) * 86400 * 1000);
     }
@@ -53,17 +47,63 @@ const parseDate = (val) => {
     ];
 
     const m = moment(val, formats, true);
-
-    if (!m.isValid()) {
-      console.log("❌ Invalid date format:", val);
-      return null; // ❗ reject instead of fallback
-    }
-
+    if (!m.isValid()) return null;
     return m.toDate();
   } catch {
     return null;
   }
 };
+
+const planCache = new Map();
+
+async function getNextUserPlan(client, userId, planId, amount) {
+  const key = `${userId}-${planId}`;
+
+  if (!planCache.has(key)) {
+    const plansRes = await client.query(
+      `
+      SELECT id, amount, created_at
+      FROM user_plans
+      WHERE user_id = $1 AND plan_id = $2
+      ORDER BY created_at ASC, id ASC
+      `,
+      [userId, planId]
+    );
+
+    const usageRes = await client.query(
+      `
+      SELECT user_plan_id, COALESCE(SUM(amount), 0) AS earned
+      FROM roi_transactions
+      WHERE user_id = $1 AND plan_id = $2
+      GROUP BY user_plan_id
+      `,
+      [userId, planId]
+    );
+
+    const usageMap = new Map(
+      usageRes.rows.map((r) => [Number(r.user_plan_id), Number(r.earned)])
+    );
+
+    const plans = plansRes.rows.map((p) => ({
+      id: Number(p.id),
+      cap: Number(p.amount) * 2,   // change this if your real cap rule is different
+      earned: usageMap.get(Number(p.id)) || 0,
+      createdAt: new Date(p.created_at),
+    }));
+
+    planCache.set(key, plans);
+  }
+
+  const plans = planCache.get(key);
+
+  // FIFO: oldest plan first
+  const target = plans.find((p) => p.earned + amount <= p.cap);
+
+  if (!target) return null;
+
+  target.earned += amount;
+  return target.id;
+}
 
 const importROI = async () => {
   const client = await pool.connect();
@@ -72,7 +112,7 @@ const importROI = async () => {
     console.log("🚀 Importing ROI transactions...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./roi.xlsx");
+    const workbook = xlsx.readFile("./roi1.xlsx");
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 
@@ -83,29 +123,17 @@ const importROI = async () => {
       try {
         const row = data[i];
 
-        // ✅ CORRECT COLUMN MAPPING
         const userCode = clean(row[0]);
         const planId = Number(row[1]);
         const amount = parseNumber(row[2]);
-        const createdAt = parseDate(row[3]); // ✅ FIXED
+        const createdAt = parseDate(row[3]);
 
-        const type = "roi";
-        const totalEarned = amount;
-
-        /* VALIDATION */
-        if (!userCode || !planId || !amount) {
-          console.log(`❌ Row ${i}: missing required fields`);
+        if (!userCode || !planId || !amount || !createdAt) {
+          console.log(`❌ Row ${i}: invalid data`);
           skipped++;
           continue;
         }
 
-        if (!createdAt) {
-          console.log(`❌ Row ${i}: invalid date`);
-          skipped++;
-          continue;
-        }
-
-        /* USER */
         const userRes = await client.query(
           "SELECT id FROM users WHERE user_code = $1",
           [userCode]
@@ -119,41 +147,25 @@ const importROI = async () => {
 
         const userId = userRes.rows[0].id;
 
-        /* USER PLAN */
-        const planRes = await client.query(
-          `SELECT id FROM user_plans 
-           WHERE user_id = $1 AND plan_id = $2
-           ORDER BY created_at DESC LIMIT 1`,
-          [userId, planId]
-        );
+        const userPlanId = await getNextUserPlan(client, userId, planId, amount);
 
-        if (!planRes.rows.length) {
-          console.log(`❌ Row ${i}: no user_plan (${userCode})`);
+        if (!userPlanId) {
+          console.log(`❌ Row ${i}: no available user_plan for (${userCode}, plan ${planId})`);
           skipped++;
           continue;
         }
 
-        const userPlanId = planRes.rows[0].id;
-
-        /* INSERT */
         await client.query(
-          `INSERT INTO roi_transactions
+          `
+          INSERT INTO roi_transactions
           (user_id, plan_id, amount, type, created_at, total_earned, user_plan_id)
-          VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-          [
-            userId,
-            planId,
-            amount,
-            type,
-            createdAt,
-            totalEarned,
-            userPlanId,
-          ]
+          VALUES ($1,$2,$3,$4,$5,$6,$7)
+          `,
+          [userId, planId, amount, "roi", createdAt, amount, userPlanId]
         );
 
         inserted++;
-        console.log(`✅ Row ${i}: ${userCode}`);
-
+        console.log(`✅ Row ${i}: ${userCode} -> user_plan_id ${userPlanId}`);
       } catch (err) {
         console.log(`❌ Row ${i} error:`, err.message);
         skipped++;
@@ -165,7 +177,6 @@ const importROI = async () => {
     console.log("\n🎉 IMPORT COMPLETED");
     console.log(`✅ Inserted: ${inserted}`);
     console.log(`⚠️ Skipped: ${skipped}`);
-
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("❌ Import failed:", err);
