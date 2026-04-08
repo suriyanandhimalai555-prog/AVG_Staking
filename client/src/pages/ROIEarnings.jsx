@@ -8,6 +8,26 @@ const ROIEarnings = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
 
+  // ✅ SAFE DATE FORMATTER (FIXES 1970 ISSUE)
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return date.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+  };
+
   // ✅ FETCH DATA
   const fetchROI = async () => {
     try {
@@ -91,7 +111,6 @@ const ROIEarnings = () => {
 
   return (
     <div className="users-page">
-
       {/* HEADER */}
       <div className="users-header">
         <div>
@@ -141,15 +160,16 @@ const ROIEarnings = () => {
                   <td>{(page - 1) * rowsPerPage + i + 1}</td>
                   <td>{row.fromUser}</td>
                   <td>{row.toUser}</td>
+
                   <td>
                     <span className="type-badge type-roi">
                       {row.type}
                     </span>
                   </td>
+
                   <td>{row.amount}</td>
-                  <td>
-                    {new Date(row.createdAt).toLocaleString()}
-                  </td>
+
+                  <td>{formatDateTime(row.createdAt)}</td>
                 </tr>
               ))
             )}
@@ -159,7 +179,6 @@ const ROIEarnings = () => {
 
       {/* PAGINATION */}
       <div className="pagination">
-
         <div className="usrDeposit__rows">
           Rows per page
           <select
@@ -176,7 +195,6 @@ const ROIEarnings = () => {
         </div>
 
         <div className="pagination-controls">
-
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -206,11 +224,8 @@ const ROIEarnings = () => {
           >
             {">"}
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 };

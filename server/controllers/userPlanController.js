@@ -292,7 +292,8 @@ export const getROIHistory = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       SELECT 
         r.id,
         u.name AS to_user,
@@ -300,15 +301,16 @@ export const getROIHistory = async (req, res) => {
         'Admin' AS from_user,
         'SYSTEM' AS from_id,
         r.amount AS amount,
-        r.created_at   -- ✅ FIXED HERE
+        COALESCE(r.created_at, NOW()) AS created_at
       FROM roi_transactions r
       JOIN users u ON u.id = r.user_id
       WHERE r.user_id = $1
       ORDER BY r.id DESC
-    `, [userId]);
+      `,
+      [userId]
+    );
 
     res.json(result.rows);
-
   } catch (err) {
     console.error("ROI history error:", err);
     res.status(500).json({ error: err.message });
@@ -325,14 +327,13 @@ export const getAllROI = async (req, res) => {
         'Admin' AS from_user,
         'SYSTEM' AS from_id,
         r.amount AS amount,
-        r.created_at
+        COALESCE(r.created_at, NOW()) AS created_at
       FROM roi_transactions r
       JOIN users u ON u.id = r.user_id
       ORDER BY r.id DESC
     `);
 
     res.json(result.rows);
-
   } catch (err) {
     console.error("getAllROI error:", err);
     res.status(500).json({ error: err.message });
