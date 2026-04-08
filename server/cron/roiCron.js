@@ -1,12 +1,11 @@
 import cron from "node-cron";
 import { pool } from "../config/db.js";
 
-// ✅ Runs every minute (for testing)
+// ✅ Runs Monday - Friday at 11:50 PM
 cron.schedule("50 23 * * 1-5", async () => {
   console.log("Running ROI cron at 11:50 PM...");
 
   try {
-    // ✅ GET ACTIVE USER PLANS + PLAN ROI
     const plans = await pool.query(`
       SELECT 
         up.id,
@@ -21,19 +20,13 @@ cron.schedule("50 23 * * 1-5", async () => {
 
     for (const plan of plans.rows) {
       const amount = Number(plan.amount || 0);
-
-      // ✅ FIX: Extract % from "0.5 % / Day"
       const roiPercent = parseFloat(plan.roi) || 0;
-
-      // ✅ CALCULATE DAILY ROI
       const dailyROI = (amount * roiPercent) / 100;
 
-      // 🚫 Skip if invalid
       if (dailyROI <= 0) continue;
 
       const maxReturn = amount * 2;
 
-      // ✅ GET CURRENT TOTAL EARNED
       const totalRes = await pool.query(
         `
         SELECT 
@@ -74,7 +67,6 @@ cron.schedule("50 23 * * 1-5", async () => {
         Number(row.direct) +
         Number(row.level);
 
-      // ✅ STOP WHEN 2X REACHED
       if (currentTotal >= maxReturn) {
         await pool.query(
           `UPDATE user_plans SET status='completed' WHERE id=$1`,
@@ -85,7 +77,7 @@ cron.schedule("50 23 * * 1-5", async () => {
 
       let todayROI = dailyROI;
 
-      // ✅ FINAL DAY ADJUSTMENT
+      // ✅ FINAL DAY
       if (currentTotal + todayROI >= maxReturn) {
         todayROI = maxReturn - currentTotal;
 
@@ -97,15 +89,16 @@ cron.schedule("50 23 * * 1-5", async () => {
           continue;
         }
 
+        // ✅ FIX APPLIED HERE
         await pool.query(
           `
           INSERT INTO roi_transactions
-          (user_id, plan_id, user_plan_id, amount, total_earned)
-          VALUES ($1, $2, $3, $4, $5)
+          (user_id, plan_id, user_plan_id, amount, total_earned, created_at)
+          VALUES ($1, $2, $3, $4, $5, NOW())
           `,
           [
             plan.user_id,
-            plan.plan_id,   // ✅ FIXED
+            plan.plan_id,
             plan.id,
             todayROI,
             maxReturn,
@@ -120,16 +113,16 @@ cron.schedule("50 23 * * 1-5", async () => {
         continue;
       }
 
-      // ✅ NORMAL DAILY ROI INSERT
+      // ✅ NORMAL DAILY ROI
       await pool.query(
         `
         INSERT INTO roi_transactions
-        (user_id, plan_id, user_plan_id, amount, total_earned)
-        VALUES ($1, $2, $3, $4, $5)
+        (user_id, plan_id, user_plan_id, amount, total_earned, created_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
         `,
         [
           plan.user_id,
-          plan.plan_id,   // ✅ FIXED
+          plan.plan_id,
           plan.id,
           todayROI,
           currentTotal + todayROI,
