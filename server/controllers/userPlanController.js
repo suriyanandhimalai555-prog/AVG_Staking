@@ -301,7 +301,7 @@ export const getROIHistory = async (req, res) => {
         'Admin' AS from_user,
         'SYSTEM' AS from_id,
         r.amount AS amount,
-        COALESCE(r.created_at, NOW()) AS created_at
+        r.created_at
       FROM roi_transactions r
       JOIN users u ON u.id = r.user_id
       WHERE r.user_id = $1
@@ -327,7 +327,7 @@ export const getAllROI = async (req, res) => {
         'Admin' AS from_user,
         'SYSTEM' AS from_id,
         r.amount AS amount,
-        COALESCE(r.created_at, NOW()) AS created_at
+        r.created_at
       FROM roi_transactions r
       JOIN users u ON u.id = r.user_id
       ORDER BY r.id DESC
