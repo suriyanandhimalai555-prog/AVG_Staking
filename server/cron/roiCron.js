@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { pool } from "../config/db.js";
 
 // ✅ Runs Monday - Friday at 11:50 PM
-cron.schedule("50 23 * * 1-5", async () => {
+cron.schedule("* * * * *", async () => {
   console.log("Running ROI cron at 11:50 PM...");
 
   try {
