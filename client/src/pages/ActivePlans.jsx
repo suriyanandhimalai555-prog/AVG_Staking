@@ -315,26 +315,22 @@ const ActivePlans = () => {
       <div className="users-header">
         <h2>{showRequests ? 'Plan Requests' : 'Active Plans'}</h2>
 
-        <button
-          type="button"
-          onClick={() => setShowRequests((prev) => !prev)}
-          style={{
-            marginLeft: "10px",
-            padding: "8px 14px",
-            borderRadius: "8px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          {showRequests ? "Show Active Plans" : "Request Plan"}
-        </button>
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowRequests((prev) => !prev)}
+            className='tx-manual-deposit-btn'
+          >
+            {showRequests ? "Show Active Plans" : "Request Plan"}
+          </button>
 
-        <input
-          type="text"
-          placeholder="Search..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="table-card">

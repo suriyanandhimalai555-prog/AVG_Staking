@@ -33,7 +33,11 @@ const Portfolio = () => {
         }
       );
 
-      setPlans(res.data || []);
+      const activePlans = (res.data || []).filter(
+        (plan) => String(plan.status || "").toLowerCase() !== "completed"
+      );
+
+      setPlans(activePlans);
     } catch (err) {
       console.error("Portfolio fetch error:", err);
     } finally {
