@@ -43,42 +43,42 @@ const Portfolio = () => {
             <p>No active plans</p>
           ) : (
             plans.map((plan, index) => {
-  const deposit = Number(plan.amount || 0);
-  const dailyROI = Number(plan.daily_roi || 0);
+              const deposit = Number(plan.amount || 0);
+              const dailyROI = Number(plan.daily_roi || 0);
 
-  const roiIncome = Number(plan.roi_income || 0);
-  const directIncome = Number(plan.direct_income || 0);
-  const levelIncome = Number(plan.level_income || 0);
+              const roiIncome = Number(plan.roi_income || 0);
+              const directIncome = Number(plan.direct_income || 0);
+              const levelIncome = Number(plan.level_income || 0);
 
-  const maxReturn = Number(plan.max_return || 0);
+              const maxReturn = Number(plan.max_return || 0);
 
-  // ✅ HARD CAP (MAIN FIX)
-  const rawTotal = roiIncome + directIncome + levelIncome;
-  const totalEarned = Math.min(rawTotal, maxReturn);
+              // ✅ HARD CAP (MAIN FIX)
+              const rawTotal = roiIncome + directIncome + levelIncome;
+              const totalEarned = Math.min(rawTotal, maxReturn);
 
-  // ❌ REMOVE EXTRA PROFIT COMPLETELY
-  const extraEarned = 0;
+              // ❌ REMOVE EXTRA PROFIT COMPLETELY
+              const extraEarned = 0;
 
-  // ✅ PROGRESS BASED ON CAPPED VALUE
-  const totalProgress =
-    maxReturn > 0
-      ? ((totalEarned / maxReturn) * 100).toFixed(2)
-      : "0.00";
+              // ✅ PROGRESS BASED ON CAPPED VALUE
+              const totalProgress =
+                maxReturn > 0
+                  ? ((totalEarned / maxReturn) * 100).toFixed(2)
+                  : "0.00";
 
-  const roiProgress =
-    maxReturn > 0
-      ? Math.min((roiIncome / maxReturn) * 100, 100).toFixed(2)
-      : "0.00";
+              const roiProgress =
+                maxReturn > 0
+                  ? Math.min((roiIncome / maxReturn) * 100, 100).toFixed(2)
+                  : "0.00";
 
-  const directProgress =
-    maxReturn > 0
-      ? Math.min((directIncome / maxReturn) * 100, 100).toFixed(2)
-      : "0.00";
+              const directProgress =
+                maxReturn > 0
+                  ? Math.min((directIncome / maxReturn) * 100, 100).toFixed(2)
+                  : "0.00";
 
-  const levelProgress =
-    maxReturn > 0
-      ? Math.min((levelIncome / maxReturn) * 100, 100).toFixed(2)
-      : "0.00";
+              const levelProgress =
+                maxReturn > 0
+                  ? Math.min((levelIncome / maxReturn) * 100, 100).toFixed(2)
+                  : "0.00";
 
               return (
                 <div key={index} className="usrPortfolio__card">
@@ -178,7 +178,12 @@ const Portfolio = () => {
                       <span>Purchased</span>
                       <span>
                         {plan.created_at
-                          ? new Date(plan.created_at).toLocaleDateString()
+                          ? new Date(plan.created_at + "Z").toLocaleString("en-IN", {
+                            timeZone: "Asia/Kolkata",
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                           : "-"}
                       </span>
                     </div>
