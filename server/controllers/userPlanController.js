@@ -38,47 +38,49 @@ const getUserCode = async (userId) => {
 };
 
 const getCreditedPlanId = async (receiverUserId) => {
-  const result = await pool.query(
+  const plansRes = await pool.query(
     `
-    SELECT
+    SELECT 
       up.id,
       up.amount,
-      up.status,
       up.created_at,
-      COALESCE(r.total_roi, 0) AS roi_income,
-      COALESCE(i.total_referral_income, 0) AS referral_income,
       p.ceiling_limit
     FROM user_plans up
     JOIN plans p ON p.id = up.plan_id
-    LEFT JOIN (
-      SELECT user_plan_id, SUM(amount) AS total_roi
-      FROM roi_transactions
-      GROUP BY user_plan_id
-    ) r ON r.user_plan_id = up.id
-    LEFT JOIN (
-      SELECT credited_user_plan_id, SUM(amount) AS total_referral_income
-      FROM level_income
-      GROUP BY credited_user_plan_id
-    ) i ON i.credited_user_plan_id = up.id
     WHERE up.user_id = $1
       AND up.status = 'active'
-    ORDER BY up.id ASC
+    ORDER BY up.created_at ASC
     `,
     [receiverUserId]
   );
 
-  for (const plan of result.rows) {
-    const deposit = Number(plan.amount || 0);
-    const maxReturn = deposit * getCeilingMultiplier(plan);
-    const totalEarned =
-      Number(plan.roi_income || 0) + Number(plan.referral_income || 0);
+  const incomeRes = await pool.query(
+    `
+    SELECT amount
+    FROM level_income
+    WHERE user_id = $1
+    ORDER BY created_at ASC
+    `,
+    [receiverUserId]
+  );
 
-    if (totalEarned < maxReturn) {
+  let remainingIncome = incomeRes.rows.reduce(
+    (sum, row) => sum + Number(row.amount || 0),
+    0
+  );
+
+  for (const plan of plansRes.rows) {
+    const maxReturn =
+      Number(plan.amount) * getCeilingMultiplier(plan);
+
+    if (remainingIncome < maxReturn) {
       return plan.id;
     }
+
+    remainingIncome -= maxReturn;
   }
 
-  return null;
+  return plansRes.rows.length ? plansRes.rows.at(-1).id : null;
 };
 
 const insertEarning = async ({
