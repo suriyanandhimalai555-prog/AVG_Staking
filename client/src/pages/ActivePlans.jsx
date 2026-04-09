@@ -22,7 +22,7 @@ const ActivePlans = () => {
     const d = new Date(date);
     if (isNaN(d.getTime())) return "-";
 
-    // ✅ IST conversion
+    // ✅ Convert to IST
     const istDate = new Date(
       d.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
     );
@@ -31,7 +31,13 @@ const ActivePlans = () => {
     const month = String(istDate.getMonth() + 1).padStart(2, "0");
     const year = istDate.getFullYear();
 
-    return `${day}/${month}/${year}`;
+    let hours = istDate.getHours();
+    const minutes = String(istDate.getMinutes()).padStart(2, "0");
+
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
   };
 
   /* ================= FETCH ================= */
@@ -197,8 +203,8 @@ const ActivePlans = () => {
               {modalType === 'delete'
                 ? 'Confirm Delete'
                 : modalType === 'edit'
-                ? 'Edit Plan'
-                : 'View Details'}
+                  ? 'Edit Plan'
+                  : 'View Details'}
             </h3>
             <button onClick={() => setShowModal(false)}>✕</button>
           </div>
