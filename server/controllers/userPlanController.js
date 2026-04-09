@@ -288,6 +288,16 @@ export const getAllUserPlans = async (req, res) => {
   }
 };
 
+// ✅ backend/controller/userPlanController.js
+
+const IST_DATE_SQL = `
+  to_char(
+    (created_at AT TIME ZONE 'Asia/Kolkata'),
+    'DD/MM/YYYY, HH12:MI:SS AM'
+  )
+`;
+
+// ROI history
 export const getROIHistory = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -301,7 +311,7 @@ export const getROIHistory = async (req, res) => {
         'Admin' AS from_user,
         'SYSTEM' AS from_id,
         r.amount AS amount,
-        r.created_at
+        to_char((r.created_at AT TIME ZONE 'Asia/Kolkata'), 'DD/MM/YYYY, HH12:MI:SS AM') AS created_at
       FROM roi_transactions r
       JOIN users u ON u.id = r.user_id
       WHERE r.user_id = $1
@@ -317,6 +327,7 @@ export const getROIHistory = async (req, res) => {
   }
 };
 
+// Admin ROI
 export const getAllROI = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -327,7 +338,7 @@ export const getAllROI = async (req, res) => {
         'Admin' AS from_user,
         'SYSTEM' AS from_id,
         r.amount AS amount,
-        r.created_at
+        to_char((r.created_at AT TIME ZONE 'Asia/Kolkata'), 'DD/MM/YYYY, HH12:MI:SS AM') AS created_at
       FROM roi_transactions r
       JOIN users u ON u.id = r.user_id
       ORDER BY r.id DESC
