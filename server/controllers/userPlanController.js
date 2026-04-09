@@ -292,15 +292,14 @@ export const approveUserPlanRequest = async (req, res) => {
     await pool.query("BEGIN");
 
     const requestRes = await pool.query(
-      `
-      SELECT up.*, p.daily_roi
-      FROM user_plans up
-      JOIN plans p ON p.id = up.plan_id
-      WHERE up.id = $1
-      FOR UPDATE
-      `,
-      [id]
-    );
+  `
+  SELECT up.*
+  FROM user_plans up
+  WHERE up.id = $1
+  FOR UPDATE
+  `,
+  [id]
+);
 
     const request = requestRes.rows[0];
 
