@@ -8,12 +8,31 @@ const Portfolio = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ FIXED DATE FORMAT FUNCTION (MAIN BUG FIX)
+  const formatDate = (date) => {
+    if (!date) return "-";
+
+    const d = new Date(date);
+
+    if (isNaN(d.getTime())) return "-";
+
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+  };
+
   const fetchPortfolio = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/my`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/my`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setPlans(res.data || []);
     } catch (err) {
@@ -52,18 +71,8 @@ const Portfolio = () => {
 
               const maxReturn = Number(plan.max_return || 0);
 
-              // ✅ HARD CAP (MAIN FIX)
               const rawTotal = roiIncome + directIncome + levelIncome;
               const totalEarned = Math.min(rawTotal, maxReturn);
-
-              // ❌ REMOVE EXTRA PROFIT COMPLETELY
-              const extraEarned = 0;
-
-              // ✅ PROGRESS BASED ON CAPPED VALUE
-              const totalProgress =
-                maxReturn > 0
-                  ? ((totalEarned / maxReturn) * 100).toFixed(2)
-                  : "0.00";
 
               const roiProgress =
                 maxReturn > 0
@@ -100,6 +109,7 @@ const Portfolio = () => {
                     </div>
                   </div>
 
+                  {/* ROI */}
                   <div className="usrPortfolio__progressSection">
                     <div className="usrPortfolio__progressHeader">
                       <span>ROI Progress</span>
@@ -120,6 +130,7 @@ const Portfolio = () => {
                     </p>
                   </div>
 
+                  {/* DIRECT */}
                   <div className="usrPortfolio__progressSection">
                     <div className="usrPortfolio__progressHeader">
                       <span>Direct Referral Income</span>
@@ -140,6 +151,7 @@ const Portfolio = () => {
                     </p>
                   </div>
 
+                  {/* LEVEL */}
                   <div className="usrPortfolio__progressSection">
                     <div className="usrPortfolio__progressHeader">
                       <span>Level Income</span>
@@ -167,25 +179,11 @@ const Portfolio = () => {
                     </strong>
                   </div>
 
-                  {/* {extraEarned > 0 && (
-                    <div className="usrPortfolio__extraIncome">
-                      Extra Profit: <strong>${extraEarned.toFixed(2)}</strong>
-                    </div>
-                  )} */}
-
+                  {/* ✅ FIXED DATE HERE */}
                   <div className="usrPortfolio__footer">
                     <div className="usrPortfolio__footerRow">
                       <span>Purchased</span>
-                      <span>
-                        {plan.created_at
-                          ? new Date(plan.created_at + "Z").toLocaleString("en-IN", {
-                            timeZone: "Asia/Kolkata",
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                          : "-"}
-                      </span>
+                      <span>{formatDate(plan.created_at)}</span>
                     </div>
 
                     <div className="usrPortfolio__footerRow">
