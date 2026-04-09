@@ -156,7 +156,7 @@ const UserROI = () => {
 
                       <td className="uroiAmount">{item.amount}</td>
 
-                      <td>{formatDateTime(item.date)}</td>
+                      <td>{item.date}</td>
                     </tr>
                   ))
                 )}

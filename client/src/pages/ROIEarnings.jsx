@@ -149,7 +149,7 @@ const ROIEarnings = () => {
 
                   <td>{row.amount}</td>
 
-                  <td>{formatDateTime(row.createdAt)}</td>
+                  <td>{row.createdAt}</td>
                 </tr>
               ))
             )}
