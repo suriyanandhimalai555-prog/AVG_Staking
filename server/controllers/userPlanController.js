@@ -272,6 +272,7 @@ export const getAllUserPlans = async (req, res) => {
         up.id,
         u.name || ' ' || COALESCE(u.lastname, '') AS user,
         p.name AS plan_name,
+        u.user_code,
         up.amount,
         ROUND((up.amount * COALESCE(CAST(REGEXP_REPLACE(p.roi, '[^0-9.]', '', 'g') AS NUMERIC),0)) / 100, 2) AS daily_roi,
         up.status,
