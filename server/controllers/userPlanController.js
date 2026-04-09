@@ -104,7 +104,6 @@ const insertEarning = async ({
 };
 
 /* BUY PLAN */
-/* REQUEST PLAN */
 export const buyPlan = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -129,7 +128,12 @@ export const buyPlan = async (req, res) => {
       return res.status(404).json({ message: "Plan not found" });
     }
 
-    const dailyROI = Number(plan.daily_roi || 0);
+    // ✅ FIXED ROI CALCULATION
+    const roiPercent = parseFloat(
+      String(plan.roi || "0").replace(/[^\d.]/g, "")
+    );
+
+    const dailyROI = (numericAmount * roiPercent) / 100;
 
     await pool.query("BEGIN");
 
