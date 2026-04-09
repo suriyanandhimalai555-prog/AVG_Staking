@@ -246,9 +246,10 @@ export const getAllUserPlans = async (req, res) => {
         up.status,
         up.created_at
       FROM user_plans up
-      JOIN users u ON u.id = up.user_id
-      JOIN plans p ON p.id = up.plan_id
-      ORDER BY up.id DESC
+JOIN users u ON u.id = up.user_id
+JOIN plans p ON p.id = up.plan_id
+WHERE up.status <> 'pending'
+ORDER BY up.id DESC
     `);
 
     res.json(result.rows);
@@ -339,26 +340,36 @@ export const approveUserPlanRequest = async (req, res) => {
     const directParentCode = userRes.rows[0]?.referred_by;
     const directParentId = await resolveUserId(directParentCode);
 
-    if (directParentId) {
-      await insertEarning({
-        receiverUserId: directParentId,
-        receiverUserCode: directParentCode,
-        fromUserId: userId,
-        fromUserCode: currentUserCode,
-        sourceUserPlanId: request.id,
-        amount: numericAmount * 0.05,
-        percentage: 5,
-        level: 0,
-        incomeType: "direct",
-      });
-    }
+    try {
+  if (directParentId) {
+    await insertEarning({
+      receiverUserId: directParentId,
+      receiverUserCode: directParentCode,
+      fromUserId: userId,
+      fromUserCode: currentUserCode,
+      sourceUserPlanId: request.id,
+      amount: numericAmount * 0.05,
+      percentage: 5,
+      level: 0,
+      incomeType: "direct",
+    });
+  }
 
+  // 🔥 SAFE LEVEL INCOME
+  try {
     await creditLevelIncome({
       buyerId: userId,
       planAmount: numericAmount,
       userPlanId: request.id,
       creditedUserPlanId: request.id,
     });
+  } catch (err) {
+    console.log("Level income skipped:", err.message);
+  }
+
+} catch (err) {
+  console.log("Referral skipped:", err.message);
+}
 
     await pool.query("COMMIT");
 
