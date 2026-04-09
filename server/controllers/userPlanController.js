@@ -164,43 +164,42 @@ export const getUserPlans = async (req, res) => {
     const userId = req.user.id;
 
     const result = await pool.query(
-      `
-      WITH income AS (
-        SELECT
-          COALESCE(credited_user_plan_id, user_plan_id) AS credited_plan_id,
-          SUM(CASE WHEN income_type = 'direct' THEN amount ELSE 0 END) AS direct_income,
-          SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END) AS level_income
-        FROM level_income
-        GROUP BY COALESCE(credited_user_plan_id, user_plan_id)
-      ),
-      roi AS (
-        SELECT
-          user_plan_id,
-          SUM(amount) AS total_roi
-        FROM roi_transactions
-        GROUP BY user_plan_id
-      )
-      SELECT
-        up.id,
-        p.name AS plan_name,
-        p.ceiling_limit,
-        up.amount,
-        up.daily_roi,
-        up.status,
-        up.created_at,
-        COALESCE(r.total_roi, 0) AS roi_income,
-        COALESCE(i.direct_income, 0) AS direct_income,
-        COALESCE(i.level_income, 0) AS level_income
-      FROM user_plans up
-      JOIN plans p ON p.id = up.plan_id
-      LEFT JOIN roi r ON r.user_plan_id = up.id
-      LEFT JOIN income i ON i.credited_plan_id = up.id
-      WHERE up.user_id = $1
-  AND up.status = 'active'
-      ORDER BY up.id DESC
-      `,
-      [userId]
-    );
+  `
+  WITH income AS (
+    SELECT
+      COALESCE(credited_user_plan_id, user_plan_id) AS credited_plan_id,
+      SUM(CASE WHEN income_type = 'direct' THEN amount ELSE 0 END) AS direct_income,
+      SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END) AS level_income
+    FROM level_income
+    GROUP BY COALESCE(credited_user_plan_id, user_plan_id)
+  ),
+  roi AS (
+    SELECT
+      user_plan_id,
+      SUM(amount) AS total_roi
+    FROM roi_transactions
+    GROUP BY user_plan_id
+  )
+  SELECT
+    up.id,
+    p.name AS plan_name,
+    p.ceiling_limit,
+    up.amount,
+    up.daily_roi,
+    up.status,
+    up.created_at,
+    COALESCE(r.total_roi, 0) AS roi_income,
+    COALESCE(i.direct_income, 0) AS direct_income,
+    COALESCE(i.level_income, 0) AS level_income
+  FROM user_plans up
+  JOIN plans p ON p.id = up.plan_id
+  LEFT JOIN roi r ON r.user_plan_id = up.id
+  LEFT JOIN income i ON i.credited_plan_id = up.id
+  WHERE up.user_id = $1   -- ✅ ONLY THIS FILTER
+  ORDER BY up.id DESC
+  `,
+  [userId]
+);
 
     const data = result.rows.map((plan) => {
       const deposit = Number(plan.amount || 0);
