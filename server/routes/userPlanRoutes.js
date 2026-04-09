@@ -11,7 +11,9 @@ import {
   getAllTransactionsAdmin,
   deleteUserPlan,
   updateUserPlanStatus,
-  getMyTotalROI
+  getMyTotalROI,
+  getPendingUserPlanRequests,
+  approveUserPlanRequest
 } from "../controllers/userPlanController.js";
 
 const router = express.Router();
@@ -33,5 +35,8 @@ router.get("/transactions-all", verifyToken, isAdmin, getAllTransactionsAdmin);
 
 router.delete("/:id", verifyToken, isAdmin, deleteUserPlan);
 router.put("/:id/status", verifyToken, isAdmin, updateUserPlanStatus);
+
+router.get("/requests", adminAuthMiddleware, getPendingUserPlanRequests);
+router.put("/:id/approve", adminAuthMiddleware, approveUserPlanRequest);
 
 export default router;

@@ -8,6 +8,8 @@ const ActivePlans = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [plansData, setPlansData] = useState([]);
+  const [requestPlans, setRequestPlans] = useState([]);
+  const [showRequests, setShowRequests] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(null);
 
@@ -45,9 +47,12 @@ const ActivePlans = () => {
     try {
       const token = localStorage.getItem('token');
 
-      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/all`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const formatted = (res.data || []).map((item) => ({
         id: item.id,
@@ -60,8 +65,6 @@ const ActivePlans = () => {
           String(item.status || '').toLowerCase() === 'active'
             ? 'Active'
             : 'Inactive',
-
-        // ✅ ONLY CHANGE HERE
         createdAt: formatDate(item.created_at),
       }));
 
@@ -72,9 +75,72 @@ const ActivePlans = () => {
     }
   }, []);
 
+  const fetchRequests = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/requests`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const formatted = (res.data || []).map((item) => ({
+        id: item.id,
+        user: item.user || 'N/A',
+        userCode: item.user_code || '-',
+        planName: item.plan_name || 'N/A',
+        amount: `$${item.amount ?? 0}`,
+        status:
+          String(item.status || '').toLowerCase() === 'pending'
+            ? 'Pending'
+            : String(item.status || '').toLowerCase(),
+        createdAt: formatDate(item.created_at),
+      }));
+
+      setRequestPlans(formatted);
+    } catch (err) {
+      console.error('Fetch request plans error:', err);
+      toast.error("Failed to load requests ❌");
+    }
+  }, []);
+
   useEffect(() => {
     fetchAllPlans();
   }, [fetchAllPlans]);
+
+  useEffect(() => {
+    if (showRequests) {
+      fetchRequests();
+    }
+  }, [showRequests, fetchRequests]);
+
+  useEffect(() => {
+    setMenuOpen(null);
+    setCurrentPage(1);
+  }, [showRequests]);
+
+  const handleApproveRequest = async (requestId) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      await axios.put(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/${requestId}/approve`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("Request approved ✅");
+      fetchRequests();
+      fetchAllPlans();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Approve failed ❌");
+    }
+  };
 
   /* ================= REST CODE (UNCHANGED) ================= */
   const handleView = (plan) => {
@@ -136,16 +202,29 @@ const ActivePlans = () => {
     }
   };
 
+  const dataSource = showRequests ? requestPlans : plansData;
+
   const filteredData = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
 
-    return plansData.filter(
-      (item) =>
-        item.user.toLowerCase().includes(q) ||
-item.userCode.toLowerCase().includes(q) ||   // ✅ ADDED
-item.planName.toLowerCase().includes(q)
-    );
-  }, [plansData, searchTerm]);
+    return dataSource.filter((item) => {
+      const user = String(item.user || '').toLowerCase();
+      const userCode = String(item.userCode || '').toLowerCase();
+      const planName = String(item.planName || '').toLowerCase();
+      const depositAmount = String(item.depositAmount || item.amount || '').toLowerCase();
+      const dailyROI = String(item.dailyROI || '').toLowerCase();
+      const status = String(item.status || '').toLowerCase();
+
+      return (
+        user.includes(q) ||
+        userCode.includes(q) ||
+        planName.includes(q) ||
+        depositAmount.includes(q) ||
+        dailyROI.includes(q) ||
+        status.includes(q)
+      );
+    });
+  }, [dataSource, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
 
@@ -233,9 +312,22 @@ item.planName.toLowerCase().includes(q)
 
   return (
     <div className="users-page">
-
       <div className="users-header">
-        <h2>Active Plans</h2>
+        <h2>{showRequests ? 'Plan Requests' : 'Active Plans'}</h2>
+
+        <button
+          type="button"
+          onClick={() => setShowRequests((prev) => !prev)}
+          style={{
+            marginLeft: "10px",
+            padding: "8px 14px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          {showRequests ? "Show Active Plans" : "Request Plan"}
+        </button>
 
         <input
           type="text"
@@ -248,66 +340,103 @@ item.planName.toLowerCase().includes(q)
       <div className="table-card">
         <table className="users-table">
           <thead>
-            <tr>
-              <th>S.NO</th>
-              <th>USER</th>
-              <th>PLAN</th>
-              <th>DEPOSIT</th>
-              <th>ROI</th>
-              <th>STATUS</th>
-              <th>CREATED</th>
-              <th>ACTIONS</th>
-            </tr>
+            {showRequests ? (
+              <tr>
+                <th>S.NO</th>
+                <th>USER</th>
+                <th>PLAN</th>
+                <th>AMOUNT</th>
+                <th>STATUS</th>
+                <th>CREATED</th>
+                <th>ACTION</th>
+              </tr>
+            ) : (
+              <tr>
+                <th>S.NO</th>
+                <th>USER</th>
+                <th>PLAN</th>
+                <th>DEPOSIT</th>
+                <th>ROI</th>
+                <th>STATUS</th>
+                <th>CREATED</th>
+                <th>ACTIONS</th>
+              </tr>
+            )}
           </thead>
 
           <tbody>
             {currentItems.length > 0 ? (
-              currentItems.map((plan, index) => (
-                <tr key={plan.id}>
-                  <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
-                  <td>
-  <div style={{ display: "flex", flexDirection: "column" }}>
-    <span>{plan.user}</span>
-    <small style={{ color: "#aaa" }}>{plan.userCode}</small>
-  </div>
-</td>
-                  <td>{plan.planName}</td>
-                  <td>{plan.depositAmount}</td>
-                  <td>{plan.dailyROI}</td>
-
-                  <td>
-                    <span className={plan.status === "Active" ? "badge-active" : "badge-inactive"}>
-                      {plan.status}
-                    </span>
-                  </td>
-
-                  <td>{plan.createdAt}</td>
-
-                  <td className="action-cell">
-                    <FaEllipsisV
-                      onClick={() =>
-                        setMenuOpen(menuOpen === plan.id ? null : plan.id)
-                      }
-                    />
-
-                    {menuOpen === plan.id && (
-                      <div className="action-dropdown">
-                        <div onClick={() => handleView(plan)}>View</div>
-                        <div onClick={() => handleEdit(plan)}>Edit</div>
-                        <div onClick={() => handleStatusChange(plan)}>
-                          {plan.status === 'Active' ? 'Deactivate' : 'Activate'}
-                        </div>
-                        <div className="delete" onClick={() => handleDelete(plan)}>
-                          Delete
-                        </div>
+              showRequests ? (
+                currentItems.map((plan, index) => (
+                  <tr key={plan.id}>
+                    <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span>{plan.user}</span>
+                        <small style={{ color: "#aaa" }}>{plan.userCode}</small>
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td>{plan.planName}</td>
+                    <td>{plan.amount}</td>
+                    <td>
+                      <span className="badge-inactive">{plan.status}</span>
+                    </td>
+                    <td>{plan.createdAt}</td>
+                    <td>
+                      <button onClick={() => handleApproveRequest(plan.id)}>
+                        Approve
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                currentItems.map((plan, index) => (
+                  <tr key={plan.id}>
+                    <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span>{plan.user}</span>
+                        <small style={{ color: "#aaa" }}>{plan.userCode}</small>
+                      </div>
+                    </td>
+                    <td>{plan.planName}</td>
+                    <td>{plan.depositAmount}</td>
+                    <td>{plan.dailyROI}</td>
+
+                    <td>
+                      <span className={plan.status === "Active" ? "badge-active" : "badge-inactive"}>
+                        {plan.status}
+                      </span>
+                    </td>
+
+                    <td>{plan.createdAt}</td>
+
+                    <td className="action-cell">
+                      <FaEllipsisV
+                        onClick={() =>
+                          setMenuOpen(menuOpen === plan.id ? null : plan.id)
+                        }
+                      />
+
+                      {menuOpen === plan.id && (
+                        <div className="action-dropdown">
+                          <div onClick={() => handleView(plan)}>View</div>
+                          <div onClick={() => handleEdit(plan)}>Edit</div>
+                          <div onClick={() => handleStatusChange(plan)}>
+                            {plan.status === 'Active' ? 'Deactivate' : 'Activate'}
+                          </div>
+                          <div className="delete" onClick={() => handleDelete(plan)}>
+                            Delete
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )
             ) : (
               <tr>
-                <td colSpan="8" style={{ textAlign: "center" }}>
+                <td colSpan={showRequests ? "7" : "8"} style={{ textAlign: "center" }}>
                   No plans found
                 </td>
               </tr>
@@ -316,7 +445,6 @@ item.planName.toLowerCase().includes(q)
         </table>
       </div>
 
-      {/* ✅ SAME PAGINATION */}
       <div className="pagination">
         <div className="usrDeposit__rows">
           Rows per page
@@ -333,7 +461,7 @@ item.planName.toLowerCase().includes(q)
         <div>
           <button
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           >
             {"<"}
           </button>
@@ -354,7 +482,7 @@ item.planName.toLowerCase().includes(q)
 
           <button
             disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           >
             {">"}
           </button>

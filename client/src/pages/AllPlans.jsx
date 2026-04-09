@@ -60,7 +60,7 @@ const AllPlans = () => {
       );
 
       toast.dismiss(loadingToast);
-      toast.success("Plan purchased successfully 🎉");
+      toast.success("Plan Requested successfully 🎉");
 
       setIsPlanModalOpen(false);
       setPlanAmount("");
@@ -123,7 +123,7 @@ const AllPlans = () => {
                   className="usrAllPlans__primaryActionBtn"
                   onClick={() => openModal(plan)}
                 >
-                  Buy Now
+                  Request Plan
                 </button>
 
               </div>
@@ -142,7 +142,7 @@ const AllPlans = () => {
 
             <div className="usrAllPlans__modalHeader">
               <h3 className="usrAllPlans__modalTitle">
-                Buy Plan: {selectedPlan.name}
+                Request Plan:  {selectedPlan.name}
               </h3>
 
               <button
@@ -184,7 +184,7 @@ const AllPlans = () => {
               <button className="usrAllPlans__confirmBtn"
                 onClick={handleBuyPlan}
               >
-                Buy Now
+                Request Plan
               </button>
 
             </div>
