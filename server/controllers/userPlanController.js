@@ -228,23 +228,8 @@ export const getUserPlans = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const result = await pool.query(
+    const plansRes = await pool.query(
       `
-      WITH income AS (
-        SELECT
-          COALESCE(credited_user_plan_id, user_plan_id) AS plan_key,
-          SUM(CASE WHEN income_type IN ('direct', 'plan_direct') THEN amount ELSE 0 END) AS direct_income,
-          SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END) AS level_income
-        FROM level_income
-        GROUP BY COALESCE(credited_user_plan_id, user_plan_id)
-      ),
-      roi AS (
-        SELECT
-          user_plan_id,
-          SUM(amount) AS total_roi
-        FROM roi_transactions
-        GROUP BY user_plan_id
-      )
       SELECT
         up.id,
         p.name AS plan_name,
@@ -252,37 +237,107 @@ export const getUserPlans = async (req, res) => {
         up.amount,
         up.daily_roi,
         up.status,
-        up.created_at,
-        COALESCE(r.total_roi, 0) AS roi_income,
-        COALESCE(i.direct_income, 0) AS direct_income,
-        COALESCE(i.level_income, 0) AS level_income
+        up.created_at
       FROM user_plans up
       JOIN plans p ON p.id = up.plan_id
-      LEFT JOIN roi r ON r.user_plan_id = up.id
-      LEFT JOIN income i ON i.plan_key = up.id
       WHERE up.user_id = $1
       ORDER BY up.created_at ASC, up.id ASC
       `,
       [userId]
     );
 
-    const data = result.rows.map((plan) => {
-      const deposit = Number(plan.amount || 0);
-      const roiIncome = Number(plan.roi_income || 0);
-      const directIncome = Number(plan.direct_income || 0);
-      const levelIncome = Number(plan.level_income || 0);
+    const roiRes = await pool.query(
+      `
+      SELECT
+        user_plan_id,
+        SUM(amount) AS total_roi
+      FROM roi_transactions
+      WHERE user_id = $1
+      GROUP BY user_plan_id
+      `,
+      [userId]
+    );
 
-      const totalEarned = roiIncome + directIncome + levelIncome;
+    const referralRes = await pool.query(
+      `
+      SELECT
+        id,
+        income_type,
+        amount,
+        created_at
+      FROM level_income
+      WHERE user_id = $1
+        AND income_type IN ('direct', 'plan_direct', 'level')
+      ORDER BY created_at ASC, id ASC
+      `,
+      [userId]
+    );
+
+    const roiMap = new Map(
+      roiRes.rows.map((row) => [Number(row.user_plan_id), Number(row.total_roi || 0)])
+    );
+
+    const plans = plansRes.rows.map((plan) => {
+      const deposit = Number(plan.amount || 0);
+      const roiIncome = Number(roiMap.get(Number(plan.id)) || 0);
       const maxReturn = deposit * getCeilingMultiplier(plan);
-      const cappedEarned = Math.min(totalEarned, maxReturn);
 
       return {
         ...plan,
+        roiIncome,
+        directIncome: 0,
+        levelIncome: 0,
+        maxReturn,
+        used: roiIncome,
+      };
+    });
+
+    let planIndex = 0;
+
+    for (const incomeRow of referralRes.rows) {
+      let remaining = Number(incomeRow.amount || 0);
+      if (remaining <= 0) continue;
+
+      const bucket =
+        incomeRow.income_type === "level" ? "levelIncome" : "directIncome";
+
+      while (remaining > 0 && planIndex < plans.length) {
+        const currentPlan = plans[planIndex];
+        const capacity = Math.max(0, currentPlan.maxReturn - currentPlan.used);
+
+        if (capacity <= 0) {
+          planIndex++;
+          continue;
+        }
+
+        const allocated = Math.min(capacity, remaining);
+        currentPlan[bucket] += allocated;
+        currentPlan.used += allocated;
+        remaining -= allocated;
+
+        if (currentPlan.used >= currentPlan.maxReturn - 0.0001) {
+          planIndex++;
+        }
+      }
+    }
+
+    const data = plans.map((plan) => {
+      const totalEarned = plan.roiIncome + plan.directIncome + plan.levelIncome;
+      const cappedEarned = Math.min(totalEarned, plan.maxReturn);
+
+      return {
+        ...plan,
+        roi_income: plan.roiIncome,
+        direct_income: plan.directIncome,
+        level_income: plan.levelIncome,
         total_earned: totalEarned,
-        max_return: maxReturn,
-        progress: maxReturn > 0 ? ((cappedEarned / maxReturn) * 100).toFixed(2) : "0.00",
-        extra_earned: Math.max(0, totalEarned - maxReturn),
-        status: totalEarned >= maxReturn ? "completed" : "active",
+        max_return: plan.maxReturn,
+        progress:
+          plan.maxReturn > 0
+            ? ((cappedEarned / plan.maxReturn) * 100).toFixed(2)
+            : "0.00",
+        extra_earned: Math.max(0, totalEarned - plan.maxReturn),
+        status: totalEarned >= plan.maxReturn ? "completed" : "active",
       };
     });
 
