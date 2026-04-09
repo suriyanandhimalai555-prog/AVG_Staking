@@ -19,22 +19,22 @@ const Users = () => {
     const [editUser, setEditUser] = useState(null);
 
     const filteredUsers = useMemo(() => {
-    const searchValue = search.toLowerCase();
+        const searchValue = search.toLowerCase();
 
-    return users.filter((u) => {
-        const username = u.username?.toLowerCase() || "";
-        const email = u.email?.toLowerCase() || "";
-        const phone = u.phone || "";
-        const userCode = u.userCode?.toLowerCase() || ""; // ✅ ADD
+        return users.filter((u) => {
+            const username = u.username?.toLowerCase() || "";
+            const email = u.email?.toLowerCase() || "";
+            const phone = u.phone || "";
+            const userCode = u.userCode?.toLowerCase() || ""; // ✅ ADD
 
-        return (
-            username.includes(searchValue) ||
-            email.includes(searchValue) ||
-            phone.includes(search) ||
-            userCode.includes(searchValue)   // ✅ ADD THIS LINE
-        );
-    });
-}, [search, users]);
+            return (
+                username.includes(searchValue) ||
+                email.includes(searchValue) ||
+                phone.includes(search) ||
+                userCode.includes(searchValue)   // ✅ ADD THIS LINE
+            );
+        });
+    }, [search, users]);
 
     const totalPages = Math.max(1, Math.ceil(filteredUsers.length / rowsPerPage));
 
@@ -70,22 +70,22 @@ const Users = () => {
     };
 
     const formatDateTime = (value) => {
-  if (!value) return "-";
+        if (!value) return "-";
 
-  const date = new Date(value);
+        const date = new Date(value);
 
-  if (isNaN(date.getTime())) return "-";
+        if (isNaN(date.getTime())) return "-";
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
 
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
 
-  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
-};
+        return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+    };
 
     useEffect(() => {
         const fetchUsers = async () => {
