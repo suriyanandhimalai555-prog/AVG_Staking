@@ -24,6 +24,30 @@ const DepositTransactions = () => {
 
   const dropdownRef = useRef(null);
 
+  const formatDateTime = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "-";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+
+  const formattedHours = String(hours).padStart(2, "0");
+
+  return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
+};
+
   const fetchDropdownData = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -58,7 +82,7 @@ const DepositTransactions = () => {
         hash: item.hash || `0x${Math.random().toString(36).substring(2, 10)}`,
         plan: item.plan_name || "N/A",
         amount: `$${item.amount ?? 0}`,
-        created: item.created_at ? new Date(item.created_at).toLocaleString() : "-",
+        created: formatDateTime(item.created_at),
       }));
 
       setData(formatted);
@@ -150,7 +174,7 @@ const DepositTransactions = () => {
       hash: `0x${Math.random().toString(36).substring(2, 10)}`,
       plan: selectedPlan,
       amount: `$${depositAmount}`,
-      created: new Date().toLocaleString(),
+      created: formatDateTime(new Date()),
     };
 
     setData((prev) => [newDeposit, ...prev]);

@@ -16,6 +16,30 @@ const WithdrawTransactions = () => {
   const dropdownRef = useRef(null);
   const token = localStorage.getItem("token");
 
+  const formatDateTime = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "-";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+
+  const formattedHours = String(hours).padStart(2, "0");
+
+  return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
+};
+
   const fetchData = useCallback(async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/all`, {
@@ -38,7 +62,7 @@ const WithdrawTransactions = () => {
           currency: d.currency_type || "USD",
           proof: d.proof || d.transaction_proof || d.tx_proof || "-",
           status: d.status || "PENDING",
-          created: d.created_at ? new Date(d.created_at).toLocaleString() : "-",
+          created: formatDateTime(d.created_at),
         };
       });
 
