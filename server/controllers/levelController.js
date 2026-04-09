@@ -83,18 +83,18 @@ const getReceiverPlanId = async (client, receiverUserId) => {
   for (const plan of plansRes.rows) {
     const deposit = Number(plan.amount || 0);
 
-    const maxReturn =
-      deposit *
-      Number(
-        (String(plan.ceiling_limit || "2").match(/[\d.]+/) || [2])[0]
-      );
+    const multiplier = Number(
+      (String(plan.ceiling_limit || "2").match(/[\d.]+/) || [2])[0]
+    );
+
+    const maxReturn = deposit * multiplier;
 
     const used =
       Number(plan.roi_income || 0) +
       Number(plan.referral_income || 0);
 
     if (used < maxReturn) {
-      return plan.id; // ✅ FIRST AVAILABLE PLAN
+      return plan.id;
     }
   }
 
@@ -241,7 +241,7 @@ export const creditLevelIncome = async ({
       return;
     }
 
-    // Build upline chain: buyer -> parent -> grandparent -> ...
+    // 🔥 BUILD UPLINE CHAIN
     const uplineChain = [];
     let current = buyerId;
 
@@ -254,6 +254,7 @@ export const creditLevelIncome = async ({
       current = parentId;
     }
 
+    // 🔥 PROCESS EACH LEVEL
     for (let i = 0; i < uplineChain.length; i++) {
       const receiverId = uplineChain[i];
       const level = i + 1;
@@ -261,11 +262,9 @@ export const creditLevelIncome = async ({
       const config = levelConfigs.find((l) => Number(l.level) === level);
       if (!config) continue;
 
-      const receiverPlanId = await getReceiverPlanId(client, receiverId);
-      if (!receiverPlanId) continue;
-
       let payableAmount = amount;
 
+      // 🔒 LEVEL UNLOCK LOGIC
       if (level > 1) {
         const required = await getLevelUnlockRequirement(client, level);
         if (!required) continue;
@@ -273,9 +272,6 @@ export const creditLevelIncome = async ({
         const qualifyingRootId = uplineChain[i - 1];
         if (!qualifyingRootId) continue;
 
-        // IMPORTANT:
-        // For Level 2, use depth 1 business of the branch below the receiver.
-        // For Level 3, use depth 2 business, and so on.
         const depthToCheck = Math.max(1, level - 1);
 
         const businessBefore = await getExactDepthBusinessTotal(
@@ -287,13 +283,8 @@ export const creditLevelIncome = async ({
 
         const businessAfter = businessBefore + amount;
 
-        // Not unlocked yet
-        if (businessAfter <= required) {
-          continue;
-        }
+        if (businessAfter <= required) continue;
 
-        // Crossing case:
-        // only the amount above the unlock threshold should count
         if (businessBefore < required) {
           payableAmount = businessAfter - required;
         }
@@ -301,33 +292,92 @@ export const creditLevelIncome = async ({
 
       if (payableAmount <= 0) continue;
 
-      const percentage = Number(config.percentage);
-      const incomeAmount = Number(((payableAmount * percentage) / 100).toFixed(2));
+      let remainingAmount = payableAmount;
 
-      if (incomeAmount <= 0) continue;
-
-      await client.query(
+      // 🔥 GET ALL ACTIVE PLANS (OLDEST FIRST)
+      const plansRes = await client.query(
         `
-        INSERT INTO level_income
-          (user_id, from_user_id, user_plan_id, credited_user_plan_id, level, amount, percentage, income_type, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 'level', NOW())
+        SELECT 
+          up.id,
+          up.amount,
+          p.ceiling_limit,
+          COALESCE(r.total_roi, 0) AS roi_income,
+          COALESCE(i.total_referral_income, 0) AS referral_income
+        FROM user_plans up
+        JOIN plans p ON p.id = up.plan_id
+        LEFT JOIN (
+          SELECT user_plan_id, SUM(amount) AS total_roi
+          FROM roi_transactions
+          GROUP BY user_plan_id
+        ) r ON r.user_plan_id = up.id
+        LEFT JOIN (
+          SELECT credited_user_plan_id, SUM(amount) AS total_referral_income
+          FROM level_income
+          GROUP BY credited_user_plan_id
+        ) i ON i.credited_user_plan_id = up.id
+        WHERE up.user_id = $1
+          AND up.status = 'active'
+        ORDER BY up.created_at ASC
         `,
-        [
-          receiverId,
-          buyerId,
-          userPlanId,
-          receiverPlanId,
-          level,
-          incomeAmount,
-          percentage,
-        ]
+        [receiverId]
       );
+
+      // 🔥 DISTRIBUTE INCOME PLAN BY PLAN
+      for (const plan of plansRes.rows) {
+        if (remainingAmount <= 0) break;
+
+        const deposit = Number(plan.amount || 0);
+
+        const multiplier = Number(
+          (String(plan.ceiling_limit || "2").match(/[\d.]+/) || [2])[0]
+        );
+
+        const maxReturn = deposit * multiplier;
+
+        const used =
+          Number(plan.roi_income || 0) +
+          Number(plan.referral_income || 0);
+
+        const capacity = Math.max(0, maxReturn - used);
+
+        if (capacity <= 0) continue;
+
+        const allocatable = Math.min(capacity, remainingAmount);
+
+        const percentage = Number(config.percentage);
+
+        const incomeAmount = Number(
+          ((allocatable * percentage) / 100).toFixed(2)
+        );
+
+        if (incomeAmount <= 0) continue;
+
+        await client.query(
+          `
+          INSERT INTO level_income
+            (user_id, from_user_id, user_plan_id, credited_user_plan_id, level, amount, percentage, income_type, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, 'level', NOW())
+          `,
+          [
+            receiverId,
+            buyerId,
+            userPlanId,
+            plan.id,
+            level,
+            incomeAmount,
+            percentage,
+          ]
+        );
+
+        remainingAmount -= allocatable;
+      }
     }
 
-    // Update unlock rows after the income calculation
+    // 🔥 UPDATE LEVEL UNLOCKS
     for (let i = 0; i < uplineChain.length; i++) {
       const receiverId = uplineChain[i];
       const level = i + 1;
+
       if (level <= 1) continue;
 
       const required = await getLevelUnlockRequirement(client, level);
