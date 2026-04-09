@@ -53,31 +53,52 @@ const getUplineUserId = async (client, userId) => {
 };
 
 const getReceiverPlanId = async (client, receiverUserId) => {
-  let result = await client.query(
+  const plansRes = await client.query(
     `
-    SELECT id
-    FROM user_plans
-    WHERE user_id = $1 AND status = 'active'
-    ORDER BY id DESC
-    LIMIT 1
+    SELECT 
+      up.id,
+      up.amount,
+      p.ceiling_limit,
+      COALESCE(r.total_roi, 0) AS roi_income,
+      COALESCE(i.total_referral_income, 0) AS referral_income
+    FROM user_plans up
+    JOIN plans p ON p.id = up.plan_id
+    LEFT JOIN (
+      SELECT user_plan_id, SUM(amount) AS total_roi
+      FROM roi_transactions
+      GROUP BY user_plan_id
+    ) r ON r.user_plan_id = up.id
+    LEFT JOIN (
+      SELECT credited_user_plan_id, SUM(amount) AS total_referral_income
+      FROM level_income
+      GROUP BY credited_user_plan_id
+    ) i ON i.credited_user_plan_id = up.id
+    WHERE up.user_id = $1
+      AND up.status = 'active'
+    ORDER BY up.created_at ASC
     `,
     [receiverUserId]
   );
 
-  if (!result.rows.length) {
-    result = await client.query(
-      `
-      SELECT id
-      FROM user_plans
-      WHERE user_id = $1
-      ORDER BY id DESC
-      LIMIT 1
-      `,
-      [receiverUserId]
-    );
+  for (const plan of plansRes.rows) {
+    const deposit = Number(plan.amount || 0);
+
+    const maxReturn =
+      deposit *
+      Number(
+        (String(plan.ceiling_limit || "2").match(/[\d.]+/) || [2])[0]
+      );
+
+    const used =
+      Number(plan.roi_income || 0) +
+      Number(plan.referral_income || 0);
+
+    if (used < maxReturn) {
+      return plan.id; // ✅ FIRST AVAILABLE PLAN
+    }
   }
 
-  return result.rows[0]?.id ?? null;
+  return null;
 };
 
 /**
