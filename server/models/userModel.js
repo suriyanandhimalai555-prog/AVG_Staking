@@ -14,11 +14,11 @@ export const createUser = async (
   client = pool
 ) => {
   const query = `
-    INSERT INTO users
-      (user_code, password, role, name, lastname, email, phone, referred_by)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-    RETURNING *;
-  `;
+  INSERT INTO users
+  (user_code, password, role, name, lastname, email, phone, referred_by, created_at)
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW())
+  RETURNING *;
+`;
 
   const values = [
     user_code,
