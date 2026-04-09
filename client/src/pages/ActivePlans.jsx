@@ -52,6 +52,7 @@ const ActivePlans = () => {
       const formatted = (res.data || []).map((item) => ({
         id: item.id,
         user: item.user || 'N/A',
+        userCode: item.user_code || '-',
         planName: item.plan_name || 'N/A',
         depositAmount: `$${item.amount ?? 0}`,
         dailyROI: `$${item.daily_roi ?? 0}`,
@@ -141,7 +142,8 @@ const ActivePlans = () => {
     return plansData.filter(
       (item) =>
         item.user.toLowerCase().includes(q) ||
-        item.planName.toLowerCase().includes(q)
+item.userCode.toLowerCase().includes(q) ||   // ✅ ADDED
+item.planName.toLowerCase().includes(q)
     );
   }, [plansData, searchTerm]);
 
@@ -263,7 +265,12 @@ const ActivePlans = () => {
               currentItems.map((plan, index) => (
                 <tr key={plan.id}>
                   <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
-                  <td>{plan.user}</td>
+                  <td>
+  <div style={{ display: "flex", flexDirection: "column" }}>
+    <span>{plan.user}</span>
+    <small style={{ color: "#aaa" }}>{plan.userCode}</small>
+  </div>
+</td>
                   <td>{plan.planName}</td>
                   <td>{plan.depositAmount}</td>
                   <td>{plan.dailyROI}</td>
