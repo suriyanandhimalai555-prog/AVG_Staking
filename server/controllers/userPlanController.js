@@ -228,8 +228,23 @@ export const getUserPlans = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const plansRes = await pool.query(
+    const result = await pool.query(
       `
+      WITH income AS (
+        SELECT
+          COALESCE(credited_user_plan_id, user_plan_id) AS plan_key,
+          SUM(CASE WHEN income_type IN ('direct', 'plan_direct') THEN amount ELSE 0 END) AS direct_income,
+          SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END) AS level_income
+        FROM level_income
+        GROUP BY COALESCE(credited_user_plan_id, user_plan_id)
+      ),
+      roi AS (
+        SELECT
+          user_plan_id,
+          SUM(amount) AS total_roi
+        FROM roi_transactions
+        GROUP BY user_plan_id
+      )
       SELECT
         up.id,
         p.name AS plan_name,
@@ -243,26 +258,15 @@ export const getUserPlans = async (req, res) => {
         COALESCE(i.level_income, 0) AS level_income
       FROM user_plans up
       JOIN plans p ON p.id = up.plan_id
-      LEFT JOIN (
-        SELECT user_plan_id, SUM(amount) AS total_roi
-        FROM roi_transactions
-        GROUP BY user_plan_id
-      ) r ON r.user_plan_id = up.id
-      LEFT JOIN (
-        SELECT
-          credited_user_plan_id,
-          SUM(CASE WHEN income_type IN ('direct', 'plan_direct') THEN amount ELSE 0 END) AS direct_income,
-          SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END) AS level_income
-        FROM level_income
-        GROUP BY credited_user_plan_id
-      ) i ON i.credited_user_plan_id = up.id
+      LEFT JOIN roi r ON r.user_plan_id = up.id
+      LEFT JOIN income i ON i.plan_key = up.id
       WHERE up.user_id = $1
       ORDER BY up.created_at ASC, up.id ASC
       `,
       [userId]
     );
 
-    const data = plansRes.rows.map((plan) => {
+    const data = result.rows.map((plan) => {
       const deposit = Number(plan.amount || 0);
       const roiIncome = Number(plan.roi_income || 0);
       const directIncome = Number(plan.direct_income || 0);
@@ -271,14 +275,12 @@ export const getUserPlans = async (req, res) => {
       const totalEarned = roiIncome + directIncome + levelIncome;
       const maxReturn = deposit * getCeilingMultiplier(plan);
       const cappedEarned = Math.min(totalEarned, maxReturn);
-      const progress =
-        maxReturn > 0 ? ((cappedEarned / maxReturn) * 100).toFixed(2) : "0.00";
 
       return {
         ...plan,
         total_earned: totalEarned,
         max_return: maxReturn,
-        progress,
+        progress: maxReturn > 0 ? ((cappedEarned / maxReturn) * 100).toFixed(2) : "0.00",
         extra_earned: Math.max(0, totalEarned - maxReturn),
         status: totalEarned >= maxReturn ? "completed" : "active",
       };
