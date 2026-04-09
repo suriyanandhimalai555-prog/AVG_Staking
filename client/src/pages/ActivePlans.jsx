@@ -15,14 +15,36 @@ const ActivePlans = () => {
   const [modalType, setModalType] = useState('');
   const [selectedPlan, setSelectedPlan] = useState(null);
 
+  /* ================= DATE FORMAT (FIXED) ================= */
+  const formatDate = (date) => {
+    if (!date) return "-";
+
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "-";
+
+    // ✅ IST conversion
+    const istDate = new Date(
+      d.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
+
+    const day = String(istDate.getDate()).padStart(2, "0");
+    const month = String(istDate.getMonth() + 1).padStart(2, "0");
+    const year = istDate.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
   /* ================= FETCH ================= */
   const fetchAllPlans = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
 
-      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/all`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const formatted = (res.data || []).map((item) => ({
         id: item.id,
@@ -34,9 +56,9 @@ const ActivePlans = () => {
           String(item.status || '').toLowerCase() === 'active'
             ? 'Active'
             : 'Inactive',
-        createdAt: item.created_at
-          ? new Date(item.created_at).toLocaleString()
-          : '-',
+
+        // ✅ FIXED DATE HERE
+        createdAt: formatDate(item.created_at),
       }));
 
       setPlansData(formatted);
@@ -175,8 +197,8 @@ const ActivePlans = () => {
               {modalType === 'delete'
                 ? 'Confirm Delete'
                 : modalType === 'edit'
-                  ? 'Edit Plan'
-                  : 'View Details'}
+                ? 'Edit Plan'
+                : 'View Details'}
             </h3>
             <button onClick={() => setShowModal(false)}>✕</button>
           </div>
@@ -209,7 +231,6 @@ const ActivePlans = () => {
 
   return (
     <div className="users-page">
-
       <div className="users-header">
         <h2>Active Plans</h2>
 
@@ -287,27 +308,9 @@ const ActivePlans = () => {
         </table>
       </div>
 
-      {/* ✅ SAME PAGINATION */}
       <div className="pagination">
-        <div className="usrDeposit__rows">
-          Rows per page
-          <select
-            value={rowsPerPage}
-            onChange={(e) => setRowsPerPage(Number(e.target.value))}
-          >
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-        </div>
-
         <div>
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-          >
-            {"<"}
-          </button>
+          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>{"<"}</button>
 
           {getPagination().map((p, i) =>
             p === "..." ? (
@@ -323,12 +326,7 @@ const ActivePlans = () => {
             )
           )}
 
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-          >
-            {">"}
-          </button>
+          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>{">"}</button>
         </div>
       </div>
 
