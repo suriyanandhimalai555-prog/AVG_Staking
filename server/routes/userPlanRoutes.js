@@ -36,7 +36,7 @@ router.get("/transactions-all", verifyToken, isAdmin, getAllTransactionsAdmin);
 router.delete("/:id", verifyToken, isAdmin, deleteUserPlan);
 router.put("/:id/status", verifyToken, isAdmin, updateUserPlanStatus);
 
-router.get("/requests", adminAuthMiddleware, getPendingUserPlanRequests);
-router.put("/:id/approve", adminAuthMiddleware, approveUserPlanRequest);
+router.get("/requests", verifyToken, getPendingUserPlanRequests);
+router.put("/:id/approve", verifyToken, approveUserPlanRequest);
 
 export default router;
