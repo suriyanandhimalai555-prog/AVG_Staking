@@ -228,7 +228,7 @@ export const getUserPlans = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 🔹 Get plans
+    // 🔹 1. GET PLANS (ORDER IMPORTANT)
     const plansRes = await pool.query(
       `
       SELECT
@@ -241,12 +241,12 @@ export const getUserPlans = async (req, res) => {
       FROM user_plans up
       JOIN plans p ON p.id = up.plan_id
       WHERE up.user_id = $1
-      ORDER BY up.created_at ASC
+      ORDER BY up.created_at ASC, up.id ASC
       `,
       [userId]
     );
 
-    // 🔹 ROI (per plan)
+    // 🔹 2. GET ROI (FIXED PER PLAN)
     const roiRes = await pool.query(
       `
       SELECT user_plan_id, SUM(amount) AS total_roi
@@ -257,75 +257,78 @@ export const getUserPlans = async (req, res) => {
       [userId]
     );
 
-    // 🔹 Referral (ALL)
+    // 🔹 3. GET REFERRAL (ALL IN ORDER)
     const refRes = await pool.query(
       `
-      SELECT income_type, amount, created_at
+      SELECT income_type, amount, created_at, id
       FROM level_income
       WHERE user_id = $1
-      ORDER BY created_at ASC
+      ORDER BY created_at ASC, id ASC
       `,
       [userId]
     );
 
     const roiMap = new Map(
-      roiRes.rows.map((r) => [Number(r.user_plan_id), Number(r.total_roi || 0)])
+      roiRes.rows.map((r) => [
+        Number(r.user_plan_id),
+        Number(r.total_roi || 0),
+      ])
     );
 
+    // 🔹 4. BUILD PLAN OBJECTS
     const plans = plansRes.rows.map((p) => ({
-      ...p,
+      id: p.id,
+      plan_name: p.plan_name,
       deposit: Number(p.amount),
+      daily_roi: p.daily_roi,
+      created_at: p.created_at,
+
       max: Number(p.amount) * getCeilingMultiplier(p),
+
       roi: Number(roiMap.get(p.id) || 0),
       direct: 0,
       level: 0,
+
       used: 0,
     }));
 
-// =========================
-// 🔥 STEP 1: LOCK ROI (DO NOT CHANGE)
-// =========================
-for (const plan of plans) {
-  plan.used = plan.roi; // ROI stays fixed
-}
-
-// =========================
-// 🔥 STEP 2: DISTRIBUTE REFERRAL
-// =========================
-let index = 0;
-
-for (const row of refRes.rows) {
-  let amt = Number(row.amount);
-
-  const bucket =
-    row.income_type === "level" ? "level" : "direct";
-
-  while (amt > 0 && index < plans.length) {
-    const plan = plans[index];
-
-    const remaining = plan.max - plan.used;
-
-    if (remaining <= 0) {
-      index++;
-      continue;
+    // =========================
+    // 🔥 STEP 1: LOCK ROI FIRST
+    // =========================
+    for (const plan of plans) {
+      plan.used = plan.roi;
     }
 
-    const take = Math.min(remaining, amt);
+    // =========================
+    // 🔥 STEP 2: DISTRIBUTE REFERRAL (PLAN-WISE, NOT INDEX)
+    // =========================
+    for (const row of refRes.rows) {
+      let amt = Number(row.amount);
 
-    plan[bucket] += take;
-    plan.used += take;
+      const bucket =
+        row.income_type === "level" ? "level" : "direct";
 
-    amt -= take;
+      for (const plan of plans) {
+        if (amt <= 0) break;
 
-    if (plan.used >= plan.max) index++;
-  }
-}
+        const remaining = plan.max - plan.used;
+
+        if (remaining <= 0) continue;
+
+        const take = Math.min(remaining, amt);
+
+        plan[bucket] += take;
+        plan.used += take;
+
+        amt -= take;
+      }
+    }
 
     // =========================
-    // FINAL FORMAT
+    // 🔥 FINAL RESPONSE
     // =========================
     const data = plans.map((p) => {
-      const total = p.direct + p.level + p.roi;
+      const total = p.roi + p.direct + p.level;
 
       return {
         id: p.id,
@@ -340,14 +343,15 @@ for (const row of refRes.rows) {
 
         total_earned: total,
         max_return: p.max,
-        progress: ((total / p.max) * 100).toFixed(2),
+        progress:
+          p.max > 0 ? ((total / p.max) * 100).toFixed(2) : "0.00",
         status: total >= p.max ? "completed" : "active",
       };
     });
 
     res.json(data);
   } catch (err) {
-    console.error(err);
+    console.error("getUserPlans error:", err);
     res.status(500).json({ error: err.message });
   }
 };
