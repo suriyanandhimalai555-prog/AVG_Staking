@@ -282,15 +282,15 @@ export const getUserPlans = async (req, res) => {
       used: 0,
     }));
 
-    // =========================
-// 🔥 STEP 1: ADD ROI FIRST (REAL VALUE)
+// =========================
+// 🔥 STEP 1: LOCK ROI (DO NOT CHANGE)
 // =========================
 for (const plan of plans) {
-  plan.used = plan.roi; // ROI always stays
+  plan.used = plan.roi; // ROI stays fixed
 }
 
 // =========================
-// 🔥 STEP 2: DISTRIBUTE REFERRAL IN REMAINING SPACE
+// 🔥 STEP 2: DISTRIBUTE REFERRAL
 // =========================
 let index = 0;
 
@@ -303,14 +303,14 @@ for (const row of refRes.rows) {
   while (amt > 0 && index < plans.length) {
     const plan = plans[index];
 
-    const cap = plan.max - plan.used;
+    const remaining = plan.max - plan.used;
 
-    if (cap <= 0) {
+    if (remaining <= 0) {
       index++;
       continue;
     }
 
-    const take = Math.min(cap, amt);
+    const take = Math.min(remaining, amt);
 
     plan[bucket] += take;
     plan.used += take;
