@@ -282,54 +282,44 @@ export const getUserPlans = async (req, res) => {
       used: 0,
     }));
 
-    let index = 0;
-
     // =========================
-    // 🔥 STEP 1: DISTRIBUTE REFERRAL FIRST
-    // =========================
-    for (const row of refRes.rows) {
-      let amt = Number(row.amount);
+// 🔥 STEP 1: ADD ROI FIRST (REAL VALUE)
+// =========================
+for (const plan of plans) {
+  plan.used = plan.roi; // ROI always stays
+}
 
-      const bucket =
-        row.income_type === "level" ? "level" : "direct";
+// =========================
+// 🔥 STEP 2: DISTRIBUTE REFERRAL IN REMAINING SPACE
+// =========================
+let index = 0;
 
-      while (amt > 0 && index < plans.length) {
-        const plan = plans[index];
+for (const row of refRes.rows) {
+  let amt = Number(row.amount);
 
-        const cap = plan.max - plan.used;
+  const bucket =
+    row.income_type === "level" ? "level" : "direct";
 
-        if (cap <= 0) {
-          index++;
-          continue;
-        }
+  while (amt > 0 && index < plans.length) {
+    const plan = plans[index];
 
-        const take = Math.min(cap, amt);
+    const cap = plan.max - plan.used;
 
-        plan[bucket] += take;
-        plan.used += take;
-
-        amt -= take;
-
-        if (plan.used >= plan.max) index++;
-      }
+    if (cap <= 0) {
+      index++;
+      continue;
     }
 
-    // =========================
-    // 🔥 STEP 2: ADD ROI AFTER REFERRAL
-    // =========================
-    for (const plan of plans) {
-      const remaining = plan.max - plan.used;
+    const take = Math.min(cap, amt);
 
-      if (remaining <= 0) {
-        plan.roi = 0;
-        continue;
-      }
+    plan[bucket] += take;
+    plan.used += take;
 
-      const takeROI = Math.min(plan.roi, remaining);
+    amt -= take;
 
-      plan.roi = takeROI;
-      plan.used += takeROI;
-    }
+    if (plan.used >= plan.max) index++;
+  }
+}
 
     // =========================
     // FINAL FORMAT
