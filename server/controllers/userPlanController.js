@@ -282,18 +282,11 @@ export const getUserPlans = async (req, res) => {
       used: 0,
     }));
 
-    // =========================
-// 🔥 STEP 1: ADD ROI FIRST (REAL VALUE)
-// =========================
-for (const plan of plans) {
-  plan.used = plan.roi; // ROI always stays
-}
+ let index = 0;
 
 // =========================
-// 🔥 STEP 2: DISTRIBUTE REFERRAL IN REMAINING SPACE
+// 🔥 STEP 1: DISTRIBUTE REFERRAL FIRST
 // =========================
-let index = 0;
-
 for (const row of refRes.rows) {
   let amt = Number(row.amount);
 
@@ -303,7 +296,7 @@ for (const row of refRes.rows) {
   while (amt > 0 && index < plans.length) {
     const plan = plans[index];
 
-    const cap = plan.max - plan.used;
+    const cap = plan.max - (plan.direct + plan.level);
 
     if (cap <= 0) {
       index++;
@@ -313,11 +306,24 @@ for (const row of refRes.rows) {
     const take = Math.min(cap, amt);
 
     plan[bucket] += take;
-    plan.used += take;
 
     amt -= take;
 
-    if (plan.used >= plan.max) index++;
+    if (plan.direct + plan.level >= plan.max) index++;
+  }
+}
+
+// =========================
+// 🔥 STEP 2: ADJUST ROI (DO NOT OVERFLOW)
+// =========================
+for (const plan of plans) {
+  const referralTotal = plan.direct + plan.level;
+  const remaining = plan.max - referralTotal;
+
+  if (remaining <= 0) {
+    plan.roi = 0; // referral already filled
+  } else {
+    plan.roi = Math.min(plan.roi, remaining);
   }
 }
 
