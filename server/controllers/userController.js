@@ -846,7 +846,7 @@ export const getAdminDashboard = async (req, res) => {
 
     /* ================= ROI INCOME ================= */
     const roiRes = await pool.query(`
-      SELECT COALESCE(SUM(total_earned),0) AS total
+      SELECT COALESCE(SUM(amount),0) AS total
       FROM roi_transactions
     `);
 
@@ -905,7 +905,6 @@ export const getAdminDashboard = async (req, res) => {
         closed: Number(ticketRes.rows[0].closed),
       }
     });
-
   } catch (err) {
     console.error("getAdminDashboard error:", err);
     res.status(500).json({ error: err.message });
@@ -915,9 +914,9 @@ export const getAdminDashboard = async (req, res) => {
 export const getAdminWallet = async (req, res) => {
   try {
     const roiRes = await pool.query(`
-      SELECT COALESCE(SUM(total_earned),0) AS total 
-      FROM roi_transactions
-    `);
+  SELECT COALESCE(SUM(amount),0) AS total 
+  FROM roi_transactions
+`);
 
     const roi = Number(roiRes.rows[0].total);
 
