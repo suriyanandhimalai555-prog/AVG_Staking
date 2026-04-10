@@ -829,9 +829,9 @@ export const getAdminDashboard = async (req, res) => {
     const depositRes = await pool.query(`
       SELECT
         COUNT(*) AS total_count,
-        COALESCE(SUM(amount),0) AS total_amount,
+        COALESCE(SUM(amount), 0) AS total_amount,
         COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) AS today_count,
-        COALESCE(SUM(amount) FILTER (WHERE DATE(created_at) = CURRENT_DATE),0) AS today_amount
+        COALESCE(SUM(amount) FILTER (WHERE DATE(created_at) = CURRENT_DATE), 0) AS today_amount
       FROM user_plans
     `);
 
@@ -839,27 +839,27 @@ export const getAdminDashboard = async (req, res) => {
     const withdrawRes = await pool.query(`
       SELECT
         COUNT(*) AS total_count,
-        COALESCE(SUM(amount),0) AS total_amount,
+        COALESCE(SUM(amount), 0) AS total_amount,
         COUNT(*) FILTER (WHERE status = 'pending') AS pending
       FROM withdrawals
     `);
 
     /* ================= ROI INCOME ================= */
     const roiRes = await pool.query(`
-      SELECT COALESCE(SUM(amount),0) AS total
+      SELECT COALESCE(SUM(amount), 0) AS total
       FROM roi_transactions
     `);
 
     /* ================= DIRECT INCOME ================= */
     const directRes = await pool.query(`
-      SELECT COALESCE(SUM(amount),0) AS total
+      SELECT COALESCE(SUM(amount), 0) AS total
       FROM level_income
-      WHERE income_type IN ('direct','plan_direct')
+      WHERE income_type IN ('direct', 'plan_direct')
     `);
 
     /* ================= LEVEL INCOME ================= */
     const levelRes = await pool.query(`
-      SELECT COALESCE(SUM(amount),0) AS total
+      SELECT COALESCE(SUM(amount), 0) AS total
       FROM level_income
       WHERE income_type = 'level'
     `);
@@ -867,9 +867,9 @@ export const getAdminDashboard = async (req, res) => {
     /* ================= TICKETS ================= */
     const ticketRes = await pool.query(`
       SELECT 
-        COUNT(*) FILTER (WHERE status='open') AS open,
-        COUNT(*) FILTER (WHERE status='in_progress') AS progress,
-        COUNT(*) FILTER (WHERE status='closed') AS closed
+        COUNT(*) FILTER (WHERE status = 'open') AS open,
+        COUNT(*) FILTER (WHERE status = 'in_progress') AS progress,
+        COUNT(*) FILTER (WHERE status = 'closed') AS closed
       FROM support_tickets
     `);
 
@@ -879,31 +879,27 @@ export const getAdminDashboard = async (req, res) => {
         active: Number(usersRes.rows[0].active),
         inactive: Number(usersRes.rows[0].inactive),
       },
-
       deposits: {
         total_count: Number(depositRes.rows[0].total_count),
         total_amount: Number(depositRes.rows[0].total_amount).toFixed(2),
         today_count: Number(depositRes.rows[0].today_count),
         today_amount: Number(depositRes.rows[0].today_amount).toFixed(2),
       },
-
       withdrawals: {
         total_count: Number(withdrawRes.rows[0].total_count),
         total_amount: Number(withdrawRes.rows[0].total_amount).toFixed(2),
         pending: Number(withdrawRes.rows[0].pending),
       },
-
       income: {
         roi: Number(roiRes.rows[0].total).toFixed(2),
         direct: Number(directRes.rows[0].total).toFixed(2),
         level: Number(levelRes.rows[0].total).toFixed(2),
       },
-
       tickets: {
         open: Number(ticketRes.rows[0].open),
         progress: Number(ticketRes.rows[0].progress),
         closed: Number(ticketRes.rows[0].closed),
-      }
+      },
     });
   } catch (err) {
     console.error("getAdminDashboard error:", err);
@@ -914,9 +910,9 @@ export const getAdminDashboard = async (req, res) => {
 export const getAdminWallet = async (req, res) => {
   try {
     const roiRes = await pool.query(`
-  SELECT COALESCE(SUM(amount),0) AS total 
-  FROM roi_transactions
-`);
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM roi_transactions
+    `);
 
     const roi = Number(roiRes.rows[0].total);
 
