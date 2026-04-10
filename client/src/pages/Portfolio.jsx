@@ -89,7 +89,7 @@ const Portfolio = () => {
                   : "0.00";
 
               return (
-                <div key={plan.id} className="usrPortfolio__card">
+                <div key={index} className="usrPortfolio__card">
                   <div className="usrPortfolio__iconWrapper">📄</div>
 
                   <h3 className="usrPortfolio__planTitle">
