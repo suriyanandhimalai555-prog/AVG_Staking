@@ -228,8 +228,6 @@ export const getUserPlans = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // ✅ 1. GET ONLY APPROVED / ACTIVE / COMPLETED PLANS
-    //    Pending requests will NOT come here.
     const plansRes = await pool.query(
       `
       SELECT
@@ -249,21 +247,19 @@ export const getUserPlans = async (req, res) => {
       [userId]
     );
 
-    // ✅ 2. ROI PER PLAN
     const roiRes = await pool.query(
       `
-      SELECT user_plan_id, SUM(amount) AS total_roi
+      SELECT id, amount, created_at
       FROM roi_transactions
       WHERE user_id = $1
-      GROUP BY user_plan_id
+      ORDER BY created_at ASC, id ASC
       `,
       [userId]
     );
 
-    // ✅ 3. REFERRAL INCOME
     const refRes = await pool.query(
       `
-      SELECT income_type, amount, created_at, id
+      SELECT id, income_type, amount, created_at
       FROM level_income
       WHERE user_id = $1
       ORDER BY created_at ASC, id ASC
@@ -271,59 +267,75 @@ export const getUserPlans = async (req, res) => {
       [userId]
     );
 
-    const roiMap = new Map(
-      roiRes.rows.map((r) => [
-        Number(r.user_plan_id),
-        Number(r.total_roi || 0),
-      ])
-    );
+    const plans = plansRes.rows.map((p) => {
+      const deposit = Number(p.amount || 0);
+      const max = deposit * getCeilingMultiplier(p);
 
-    const plans = plansRes.rows.map((p) => ({
-      id: p.id,
-      plan_name: p.plan_name,
-      deposit: Number(p.amount),
-      daily_roi: p.daily_roi,
-      created_at: p.created_at,
-      status: p.status,
+      return {
+        id: p.id,
+        plan_name: p.plan_name,
+        deposit,
+        daily_roi: p.daily_roi,
+        created_at: p.created_at,
+        db_status: p.status,
 
-      max: Number(p.amount) * getCeilingMultiplier(p),
+        max,
+        roi: 0,
+        direct: 0,
+        level: 0,
+        used: 0,
+      };
+    });
 
-      roi: Number(roiMap.get(p.id) || 0),
-      direct: 0,
-      level: 0,
+    // 1) ROI first, FIFO across plans
+    let planIndex = 0;
 
-      used: 0,
-    }));
+    for (const tx of roiRes.rows) {
+      let remaining = Number(tx.amount || 0);
 
-    // ✅ lock ROI first
-    for (const plan of plans) {
-      plan.used = plan.roi;
-    }
+      while (remaining > 0 && planIndex < plans.length) {
+        const currentPlan = plans[planIndex];
+        const available = Math.max(0, currentPlan.max - currentPlan.used);
 
-    // ✅ distribute referral income
-    for (const row of refRes.rows) {
-      let amt = Number(row.amount);
+        if (available <= 0) {
+          planIndex++;
+          continue;
+        }
 
-      const bucket = row.income_type === "level" ? "level" : "direct";
+        const take = Math.min(available, remaining);
 
-      for (const plan of plans) {
-        if (amt <= 0) break;
+        currentPlan.roi += take;
+        currentPlan.used += take;
+        remaining -= take;
 
-        const remaining = plan.max - plan.used;
-        if (remaining <= 0) continue;
-
-        const take = Math.min(remaining, amt);
-
-        plan[bucket] += take;
-        plan.used += take;
-
-        amt -= take;
+        if (currentPlan.used >= currentPlan.max - 0.0001) {
+          planIndex++;
+        }
       }
     }
 
-    // ✅ final response
+    // 2) Referral income after ROI, into remaining space
+    for (const row of refRes.rows) {
+      let remaining = Number(row.amount || 0);
+      const bucket = row.income_type === "level" ? "level" : "direct";
+
+      for (const plan of plans) {
+        if (remaining <= 0) break;
+
+        const available = Math.max(0, plan.max - plan.used);
+        if (available <= 0) continue;
+
+        const take = Math.min(available, remaining);
+
+        plan[bucket] += take;
+        plan.used += take;
+        remaining -= take;
+      }
+    }
+
     const data = plans.map((p) => {
-      const total = p.roi + p.direct + p.level;
+      const total = Number((p.roi + p.direct + p.level).toFixed(2));
+      const maxReturn = Number(p.max.toFixed(2));
 
       return {
         id: p.id,
@@ -331,16 +343,15 @@ export const getUserPlans = async (req, res) => {
         amount: p.deposit,
         daily_roi: p.daily_roi,
         created_at: p.created_at,
-        status: p.status,
 
-        roi_income: p.roi,
-        direct_income: p.direct,
-        level_income: p.level,
+        roi_income: Number(p.roi.toFixed(2)),
+        direct_income: Number(p.direct.toFixed(2)),
+        level_income: Number(p.level.toFixed(2)),
 
         total_earned: total,
-        max_return: p.max,
-        progress: p.max > 0 ? ((total / p.max) * 100).toFixed(2) : "0.00",
-        status: total >= p.max ? "completed" : "active",
+        max_return: maxReturn,
+        progress: maxReturn > 0 ? ((Math.min(total, maxReturn) / maxReturn) * 100).toFixed(2) : "0.00",
+        status: total >= maxReturn ? "completed" : "active",
       };
     });
 
