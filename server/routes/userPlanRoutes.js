@@ -13,7 +13,8 @@ import {
   updateUserPlanStatus,
   getMyTotalROI,
   getPendingUserPlanRequests,
-  approveUserPlanRequest
+  approveUserPlanRequest,
+  updateUserPlan,
 } from "../controllers/userPlanController.js";
 
 const router = express.Router();
@@ -38,5 +39,7 @@ router.put("/:id/status", verifyToken, isAdmin, updateUserPlanStatus);
 
 router.get("/requests", verifyToken, getPendingUserPlanRequests);
 router.put("/:id/approve", verifyToken, approveUserPlanRequest);
+
+router.put("/user-plans/:id", authMiddleware, updateUserPlan);
 
 export default router;

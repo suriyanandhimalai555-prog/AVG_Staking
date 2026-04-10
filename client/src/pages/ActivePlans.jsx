@@ -1,3 +1,4 @@
+// ActivePlans.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from "react-hot-toast";
@@ -16,6 +17,11 @@ const ActivePlans = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [selectedPlan, setSelectedPlan] = useState(null);
+
+  const [editForm, setEditForm] = useState({
+    amount: '',
+    status: 'active',
+  });
 
   /* ✅ DATE FORMAT (YOUR EXACT LOGIC) */
   const formatDate = (date) => {
@@ -59,8 +65,15 @@ const ActivePlans = () => {
         user: item.user || 'N/A',
         userCode: item.user_code || '-',
         planName: item.plan_name || 'N/A',
-        depositAmount: `$${item.amount ?? 0}`,
-        dailyROI: `$${item.daily_roi ?? 0}`,
+
+        // raw values for editing
+        amountValue: Number(item.amount ?? 0),
+        dailyROIValue: Number(item.daily_roi ?? 0),
+
+        // display values
+        depositAmount: `$${Number(item.amount ?? 0)}`,
+        dailyROI: `$${Number(item.daily_roi ?? 0)}`,
+
         status:
           String(item.status || '').toLowerCase() === 'active'
             ? 'Active'
@@ -142,7 +155,7 @@ const ActivePlans = () => {
     }
   };
 
-  /* ================= REST CODE (UNCHANGED) ================= */
+  /* ================= ACTIONS ================= */
   const handleView = (plan) => {
     setSelectedPlan(plan);
     setModalType('view');
@@ -151,6 +164,10 @@ const ActivePlans = () => {
 
   const handleEdit = (plan) => {
     setSelectedPlan(plan);
+    setEditForm({
+      amount: String(plan.amountValue ?? 0),
+      status: String(plan.status || 'Active').toLowerCase() === 'active' ? 'active' : 'inactive',
+    });
     setModalType('edit');
     setShowModal(true);
   };
@@ -192,13 +209,40 @@ const ActivePlans = () => {
 
         toast.success("Plan deleted 🗑️");
         fetchAllPlans();
+        setShowModal(false);
+        setSelectedPlan(null);
+        return;
+      }
+
+      if (modalType === 'edit' && selectedPlan) {
+        const amount = Number(editForm.amount);
+
+        if (!Number.isFinite(amount) || amount <= 0) {
+          toast.error("Enter a valid amount ❌");
+          return;
+        }
+
+        await axios.put(
+          `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/${selectedPlan.id}`,
+          {
+            amount,
+            status: editForm.status,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        toast.success("Plan updated ✅");
+        fetchAllPlans();
+        setShowModal(false);
+        setSelectedPlan(null);
+        return;
       }
 
       setShowModal(false);
       setSelectedPlan(null);
     } catch (err) {
       console.error(err);
-      toast.error("Delete failed ❌");
+      toast.error(err.response?.data?.message || "Action failed ❌");
     }
   };
 
@@ -289,11 +333,58 @@ const ActivePlans = () => {
               <p>Delete plan for {selectedPlan?.user}?</p>
             )}
 
+            {modalType === 'edit' && selectedPlan && (
+              <div style={{ display: "grid", gap: "12px" }}>
+                <div className="modal-row">
+                  <label>User</label>
+                  <span>{selectedPlan.user}</span>
+                </div>
+
+                <div className="modal-row">
+                  <label>Plan</label>
+                  <span>{selectedPlan.planName}</span>
+                </div>
+
+                <div className="modal-row">
+                  <label>Amount</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editForm.amount}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        amount: e.target.value,
+                      }))
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div className="modal-row">
+                  <label>Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        status: e.target.value,
+                      }))
+                    }
+                    style={{ width: "100%" }}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {modalType === 'view' && selectedPlan && (
               Object.entries(selectedPlan).map(([k, v]) => (
                 <div key={k} className="modal-row">
                   <label>{k}</label>
-                  <span>{v}</span>
+                  <span>{String(v)}</span>
                 </div>
               ))
             )}
@@ -301,8 +392,13 @@ const ActivePlans = () => {
 
           <div className="modal-footer">
             <button onClick={() => setShowModal(false)}>Cancel</button>
+
             {modalType === 'delete' && (
               <button onClick={handleModalConfirm}>Delete</button>
+            )}
+
+            {modalType === 'edit' && (
+              <button onClick={handleModalConfirm}>Save Changes</button>
             )}
           </div>
         </div>

@@ -830,3 +830,84 @@ export const updateUserPlanStatus = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// controller/userPlanController.js
+
+export const updateUserPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, status } = req.body;
+
+    const hasAmount = amount !== undefined && amount !== null && amount !== "";
+    const hasStatus = status !== undefined && status !== null && status !== "";
+
+    if (!hasAmount && !hasStatus) {
+      return res.status(400).json({ message: "Nothing to update" });
+    }
+
+    await pool.query("BEGIN");
+
+    const currentRes = await pool.query(
+      `
+      SELECT up.id, up.amount, up.status, p.roi
+      FROM user_plans up
+      JOIN plans p ON p.id = up.plan_id
+      WHERE up.id = $1
+      FOR UPDATE
+      `,
+      [id]
+    );
+
+    const current = currentRes.rows[0];
+
+    if (!current) {
+      await pool.query("ROLLBACK");
+      return res.status(404).json({ message: "Plan not found" });
+    }
+
+    const nextAmount = hasAmount ? Number(amount) : Number(current.amount);
+    if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+      await pool.query("ROLLBACK");
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const nextStatus = hasStatus
+      ? String(status).toLowerCase()
+      : String(current.status).toLowerCase();
+
+    const allowedStatus = ["active", "inactive", "pending"];
+    if (!allowedStatus.includes(nextStatus)) {
+      await pool.query("ROLLBACK");
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const roiPercent = parseFloat(
+      String(current.roi || "0").replace(/[^\d.]/g, "")
+    );
+
+    const dailyROI = (nextAmount * roiPercent) / 100;
+
+    const updateRes = await pool.query(
+      `
+      UPDATE user_plans
+      SET amount = $1,
+          daily_roi = $2,
+          status = $3
+      WHERE id = $4
+      RETURNING *
+      `,
+      [nextAmount, dailyROI, nextStatus, id]
+    );
+
+    await pool.query("COMMIT");
+
+    res.json({
+      message: "Plan updated successfully",
+      plan: updateRes.rows[0],
+    });
+  } catch (err) {
+    await pool.query("ROLLBACK");
+    console.error("updateUserPlan error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
