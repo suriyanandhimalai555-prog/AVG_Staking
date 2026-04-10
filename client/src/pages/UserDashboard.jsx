@@ -66,14 +66,14 @@ const UserDashboard = () => {
         const token = localStorage.getItem("token");
 
         const [
-          summaryRes,
+          walletRes,
           withdrawRes,
           referralsRes,
           networkRes,
           depositRes,
           teamBusinessRes,
         ] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/summary`, {
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/wallet`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/my`, {
@@ -95,17 +95,16 @@ const UserDashboard = () => {
 
         // ✅ WALLET (DEDUCTED)
         setWallet({
-          roi: summaryRes.data.roi || 0,
-          level: summaryRes.data.level || 0,
-          direct: summaryRes.data.direct || 0,
-        });
+  roi: walletRes.data.roi || 0,
+  level: walletRes.data.level || 0,
+  direct: walletRes.data.direct || 0,
+});
 
-        // ✅ EARNINGS (TOTAL)
-        setEarnings({
-          roi: summaryRes.data.roiTotal || 0,
-          level: summaryRes.data.levelTotal || 0,
-          direct: summaryRes.data.directTotal || 0,
-        });
+setEarnings({
+  roi: walletRes.data.roi || 0,
+  level: walletRes.data.level || 0,
+  direct: walletRes.data.direct || 0,
+});
 
         // ✅ WITHDRAW STATS
         const withdrawals = withdrawRes.data || [];
