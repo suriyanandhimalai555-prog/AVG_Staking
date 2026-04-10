@@ -20,7 +20,7 @@ const UserROI = () => {
     if (Number.isNaN(date.getTime())) return "-";
 
     return date.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
+      timeZone: "UTC",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
