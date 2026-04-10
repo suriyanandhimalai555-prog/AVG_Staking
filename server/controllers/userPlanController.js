@@ -228,6 +228,7 @@ export const getUserPlans = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // ✅ 1. GET USER PLANS
     const plansRes = await pool.query(
       `
       SELECT
@@ -247,9 +248,10 @@ export const getUserPlans = async (req, res) => {
       [userId]
     );
 
+    // ✅ 2. GET ROI GROUPED BY PLAN (IMPORTANT FIX)
     const roiRes = await pool.query(
       `
-      SELECT user_plan_id, COALESCE(SUM(amount), 0) AS total_roi
+      SELECT user_plan_id, COALESCE(SUM(amount),0) AS total_roi
       FROM roi_transactions
       WHERE user_id = $1
         AND user_plan_id IS NOT NULL
@@ -258,12 +260,13 @@ export const getUserPlans = async (req, res) => {
       [userId]
     );
 
+    // ✅ 3. GET REFERRAL INCOME GROUPED BY PLAN
     const refRes = await pool.query(
       `
       SELECT
         credited_user_plan_id,
-        COALESCE(SUM(CASE WHEN income_type IN ('direct', 'plan_direct') THEN amount ELSE 0 END), 0) AS direct_income,
-        COALESCE(SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END), 0) AS level_income
+        COALESCE(SUM(CASE WHEN income_type IN ('direct','plan_direct') THEN amount ELSE 0 END),0) AS direct_income,
+        COALESCE(SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END),0) AS level_income
       FROM level_income
       WHERE user_id = $1
         AND credited_user_plan_id IS NOT NULL
@@ -272,29 +275,34 @@ export const getUserPlans = async (req, res) => {
       [userId]
     );
 
+    // ✅ 4. CREATE MAPS (FAST LOOKUP)
     const roiMap = new Map(
-      roiRes.rows.map((r) => [Number(r.user_plan_id), Number(r.total_roi || 0)])
-    );
-
-    const incomeMap = new Map(
-      refRes.rows.map((r) => [
-        Number(r.credited_user_plan_id),
-        {
-          direct: Number(r.direct_income || 0),
-          level: Number(r.level_income || 0),
-        },
+      roiRes.rows.map(r => [
+        Number(r.user_plan_id),
+        Number(r.total_roi || 0)
       ])
     );
 
+    const incomeMap = new Map(
+      refRes.rows.map(r => [
+        Number(r.credited_user_plan_id),
+        {
+          direct: Number(r.direct_income || 0),
+          level: Number(r.level_income || 0)
+        }
+      ])
+    );
+
+    // ✅ 5. BUILD FINAL RESPONSE
     const data = plansRes.rows.map((p) => {
       const deposit = Number(p.amount || 0);
       const maxReturn = deposit * getCeilingMultiplier(p);
 
-      const roi = Number(roiMap.get(p.id) || 0);
+      const roi = roiMap.get(p.id) || 0;
       const extra = incomeMap.get(p.id) || { direct: 0, level: 0 };
 
-      const direct = Number(extra.direct || 0);
-      const level = Number(extra.level || 0);
+      const direct = extra.direct;
+      const level = extra.level;
 
       const total = roi + direct + level;
 
@@ -304,7 +312,6 @@ export const getUserPlans = async (req, res) => {
         amount: deposit,
         daily_roi: p.daily_roi,
         created_at: p.created_at,
-        db_status: p.status,
 
         roi_income: Number(roi.toFixed(2)),
         direct_income: Number(direct.toFixed(2)),
@@ -312,10 +319,12 @@ export const getUserPlans = async (req, res) => {
 
         total_earned: Number(total.toFixed(2)),
         max_return: Number(maxReturn.toFixed(2)),
+
         progress:
           maxReturn > 0
             ? ((Math.min(total, maxReturn) / maxReturn) * 100).toFixed(2)
             : "0.00",
+
         status: total >= maxReturn ? "completed" : "active",
       };
     });
