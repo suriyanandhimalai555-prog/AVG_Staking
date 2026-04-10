@@ -9,16 +9,15 @@ export const getWithdrawSummary = async (req, res) => {
 
     const [roiRes, directRes, levelRes, withdrawRes] = await Promise.all([
 
-      // ROI TOTAL
+      // ✅ FIXED ROI (ONLY CHANGE)
       pool.query(
-        `SELECT COALESCE(SUM(total_earned),0) AS total
-         FROM roi_transactions rt
-         JOIN user_plans up ON up.id = rt.user_plan_id
-         WHERE up.user_id = $1`,
+        `SELECT COALESCE(SUM(amount),0) AS total
+         FROM roi_transactions
+         WHERE user_id = $1`,
         [userId]
       ),
 
-      // DIRECT TOTAL
+      // DIRECT TOTAL (UNCHANGED)
       pool.query(
         `SELECT COALESCE(SUM(amount),0) AS total
          FROM level_income
@@ -27,7 +26,7 @@ export const getWithdrawSummary = async (req, res) => {
         [userId]
       ),
 
-      // LEVEL TOTAL
+      // LEVEL TOTAL (UNCHANGED)
       pool.query(
         `SELECT COALESCE(SUM(amount),0) AS total
          FROM level_income
@@ -36,7 +35,7 @@ export const getWithdrawSummary = async (req, res) => {
         [userId]
       ),
 
-      // ✅ WITHDRAW (FIXED)
+      // WITHDRAW (UNCHANGED)
       pool.query(
         `SELECT
           COALESCE(SUM(amount) FILTER (
@@ -102,7 +101,6 @@ export const createWithdraw = async (req, res) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    // ✅ normalize
     walletType = walletType.toLowerCase();
 
     if (!["roi", "level", "direct", "reward"].includes(walletType)) {
@@ -117,16 +115,15 @@ export const createWithdraw = async (req, res) => {
       return res.status(400).json({ message: "Minimum $20 required" });
     }
 
-    // ROI
+    // ✅ FIXED ROI
     const roiRes = await pool.query(
-      `SELECT COALESCE(SUM(total_earned),0) AS total
-       FROM roi_transactions rt
-       JOIN user_plans up ON up.id = rt.user_plan_id
-       WHERE up.user_id = $1`,
+      `SELECT COALESCE(SUM(amount),0) AS total
+       FROM roi_transactions
+       WHERE user_id = $1`,
       [userId]
     );
 
-    // DIRECT
+    // DIRECT (UNCHANGED)
     const directRes = await pool.query(
       `SELECT COALESCE(SUM(amount),0) AS total
        FROM level_income
@@ -135,7 +132,7 @@ export const createWithdraw = async (req, res) => {
       [userId]
     );
 
-    // LEVEL
+    // LEVEL (UNCHANGED)
     const levelRes = await pool.query(
       `SELECT COALESCE(SUM(amount),0) AS total
        FROM level_income
@@ -144,7 +141,7 @@ export const createWithdraw = async (req, res) => {
       [userId]
     );
 
-    // ✅ WITHDRAW CHECK (FIXED)
+    // WITHDRAW CHECK (UNCHANGED)
     const approvedRes = await pool.query(
       `SELECT
         COALESCE(SUM(amount) FILTER (
