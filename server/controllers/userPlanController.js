@@ -249,108 +249,73 @@ export const getUserPlans = async (req, res) => {
 
     const roiRes = await pool.query(
       `
-      SELECT id, amount, created_at
+      SELECT user_plan_id, COALESCE(SUM(amount), 0) AS total_roi
       FROM roi_transactions
       WHERE user_id = $1
-      ORDER BY created_at ASC, id ASC
+        AND user_plan_id IS NOT NULL
+      GROUP BY user_plan_id
       `,
       [userId]
     );
 
     const refRes = await pool.query(
       `
-      SELECT id, income_type, amount, created_at
+      SELECT
+        credited_user_plan_id,
+        COALESCE(SUM(CASE WHEN income_type IN ('direct', 'plan_direct') THEN amount ELSE 0 END), 0) AS direct_income,
+        COALESCE(SUM(CASE WHEN income_type = 'level' THEN amount ELSE 0 END), 0) AS level_income
       FROM level_income
       WHERE user_id = $1
-      ORDER BY created_at ASC, id ASC
+        AND credited_user_plan_id IS NOT NULL
+      GROUP BY credited_user_plan_id
       `,
       [userId]
     );
 
-    const plans = plansRes.rows.map((p) => {
+    const roiMap = new Map(
+      roiRes.rows.map((r) => [Number(r.user_plan_id), Number(r.total_roi || 0)])
+    );
+
+    const incomeMap = new Map(
+      refRes.rows.map((r) => [
+        Number(r.credited_user_plan_id),
+        {
+          direct: Number(r.direct_income || 0),
+          level: Number(r.level_income || 0),
+        },
+      ])
+    );
+
+    const data = plansRes.rows.map((p) => {
       const deposit = Number(p.amount || 0);
-      const max = deposit * getCeilingMultiplier(p);
+      const maxReturn = deposit * getCeilingMultiplier(p);
+
+      const roi = Number(roiMap.get(p.id) || 0);
+      const extra = incomeMap.get(p.id) || { direct: 0, level: 0 };
+
+      const direct = Number(extra.direct || 0);
+      const level = Number(extra.level || 0);
+
+      const total = roi + direct + level;
 
       return {
         id: p.id,
         plan_name: p.plan_name,
-        deposit,
+        amount: deposit,
         daily_roi: p.daily_roi,
         created_at: p.created_at,
         db_status: p.status,
 
-        max,
-        roi: 0,
-        direct: 0,
-        level: 0,
-        used: 0,
-      };
-    });
+        roi_income: Number(roi.toFixed(2)),
+        direct_income: Number(direct.toFixed(2)),
+        level_income: Number(level.toFixed(2)),
 
-    // 1) ROI first, FIFO across plans
-    let planIndex = 0;
-
-    for (const tx of roiRes.rows) {
-      let remaining = Number(tx.amount || 0);
-
-      while (remaining > 0 && planIndex < plans.length) {
-        const currentPlan = plans[planIndex];
-        const available = Math.max(0, currentPlan.max - currentPlan.used);
-
-        if (available <= 0) {
-          planIndex++;
-          continue;
-        }
-
-        const take = Math.min(available, remaining);
-
-        currentPlan.roi += take;
-        currentPlan.used += take;
-        remaining -= take;
-
-        if (currentPlan.used >= currentPlan.max - 0.0001) {
-          planIndex++;
-        }
-      }
-    }
-
-    // 2) Referral income after ROI, into remaining space
-    for (const row of refRes.rows) {
-      let remaining = Number(row.amount || 0);
-      const bucket = row.income_type === "level" ? "level" : "direct";
-
-      for (const plan of plans) {
-        if (remaining <= 0) break;
-
-        const available = Math.max(0, plan.max - plan.used);
-        if (available <= 0) continue;
-
-        const take = Math.min(available, remaining);
-
-        plan[bucket] += take;
-        plan.used += take;
-        remaining -= take;
-      }
-    }
-
-    const data = plans.map((p) => {
-      const total = Number((p.roi + p.direct + p.level).toFixed(2));
-      const maxReturn = Number(p.max.toFixed(2));
-
-      return {
-        id: p.id,
-        plan_name: p.plan_name,
-        amount: p.deposit,
-        daily_roi: p.daily_roi,
-        created_at: p.created_at,
-
-        roi_income: Number(p.roi.toFixed(2)),
-        direct_income: Number(p.direct.toFixed(2)),
-        level_income: Number(p.level.toFixed(2)),
-
-        total_earned: total,
-        max_return: maxReturn,
-        progress: maxReturn > 0 ? ((Math.min(total, maxReturn) / maxReturn) * 100).toFixed(2) : "0.00",
+        total_earned: Number(total.toFixed(2)),
+        max_return: Number(maxReturn.toFixed(2)),
+        progress:
+          maxReturn > 0
+            ? ((Math.min(total, maxReturn) / maxReturn) * 100).toFixed(2)
+            : "0.00",
         status: total >= maxReturn ? "completed" : "active",
       };
     });
