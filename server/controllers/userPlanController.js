@@ -288,39 +288,31 @@ export const getUserPlans = async (req, res) => {
     });
 
     // 1) ROI first, FIFO across plans
-    // 1) ROI distribution (ROUND-ROBIN FIX)
-for (const tx of roiRes.rows) {
-  let remaining = Number(tx.amount || 0);
+    let planIndex = 0;
 
-  // ✅ only eligible plans (based on purchase date)
-  const eligiblePlans = plans.filter(
-    (p) => new Date(tx.created_at) >= new Date(p.created_at)
-  );
+    for (const tx of roiRes.rows) {
+      let remaining = Number(tx.amount || 0);
 
-  if (eligiblePlans.length === 0) continue;
+      while (remaining > 0 && planIndex < plans.length) {
+        const currentPlan = plans[planIndex];
+        const available = Math.max(0, currentPlan.max - currentPlan.used);
 
-  let i = 0;
+        if (available <= 0) {
+          planIndex++;
+          continue;
+        }
 
-  while (remaining > 0) {
-    const plan = eligiblePlans[i % eligiblePlans.length];
+        const take = Math.min(available, remaining);
 
-    const available = Math.max(0, plan.max - plan.used);
+        currentPlan.roi += take;
+        currentPlan.used += take;
+        remaining -= take;
 
-    if (available > 0) {
-      const take = Math.min(available, remaining);
-
-      plan.roi += take;
-      plan.used += take;
-
-      remaining -= take;
+        if (currentPlan.used >= currentPlan.max - 0.0001) {
+          planIndex++;
+        }
+      }
     }
-
-    i++;
-
-    // safety (avoid infinite loop)
-    if (i > eligiblePlans.length * 10) break;
-  }
-}
 
     // 2) Referral income after ROI, into remaining space
     for (const row of refRes.rows) {
