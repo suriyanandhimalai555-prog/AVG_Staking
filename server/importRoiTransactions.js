@@ -4,21 +4,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// const pool = new Pool({
-//   user: process.env.DB_USER,
-//   password: process.env.DB_PASSWORD,
-//   database: process.env.DB_NAME,
-//   host: process.env.DB_HOST,
-//   port: process.env.DB_PORT,
-// });
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-const IST_OFFSET_MINUTES = 330; // +05:30
-const DEFAULT_DATE_ORDER = "DMY"; // change to "MDY" if your Excel uses month/day
+// ================= UTIL =================
 
 const clean = (val) => {
   if (val === null || val === undefined || val === "") return null;
@@ -31,160 +22,83 @@ const parseNumber = (val) => {
   return parseFloat(num) || 0;
 };
 
-const excelSerialToUtcDate = (serial) => {
-  if (!Number.isFinite(serial)) return null;
+// ✅ DATE PARSER (handles your format)
+const parseDate = (val) => {
+  if (!val) return null;
 
-  // Excel serial date base: 1899-12-30
-  const wholeDays = Math.floor(serial);
-  const fraction = serial - wholeDays;
+  try {
+    if (typeof val === "number") {
+      const d = new Date((val - 25569) * 86400 * 1000);
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 50, 0);
+    }
 
-  const utcMillis =
-    Date.UTC(1899, 11, 30) +
-    wholeDays * 86400 * 1000 +
-    Math.round(fraction * 86400 * 1000);
+    let str = String(val)
+      .trim()
+      .replace(/\r\n/g, "")
+      .replace(/\n/g, "")
+      .replace(/-/g, "/");
 
-  // Treat the Excel value as IST wall time, then convert to UTC
-  return new Date(utcMillis - IST_OFFSET_MINUTES * 60 * 1000);
+    const [datePart, timePart] = str.split(",");
+
+    const parts = datePart.split("/");
+
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1;
+    const year = parseInt(parts[2]);
+
+    let hours = 23;
+    let minutes = 50;
+    let seconds = 0;
+
+    if (timePart) {
+      const time = timePart.trim().toLowerCase();
+      const match = time.match(/(\d+):(\d+):(\d+)\s*(am|pm)?/);
+
+      if (match) {
+        hours = parseInt(match[1]);
+        minutes = parseInt(match[2]);
+        seconds = parseInt(match[3]);
+
+        if (match[4] === "pm" && hours !== 12) hours += 12;
+        if (match[4] === "am" && hours === 12) hours = 0;
+      }
+    }
+
+    return new Date(year, month, day, hours, minutes, seconds);
+  } catch {
+    return null;
+  }
 };
 
-const parseExcelDate = (val) => {
-  if (val === null || val === undefined || val === "") return null;
-
-  // Already a JS Date
-  if (val instanceof Date && !Number.isNaN(val.getTime())) {
-    return new Date(val.getTime());
-  }
-
-  // Excel serial number
-  if (typeof val === "number" && Number.isFinite(val)) {
-    return excelSerialToUtcDate(val);
-  }
-
-  const str = String(val).trim();
-  if (!str) return null;
-
-  // If it is a numeric string, treat it like an Excel serial
-  if (/^\d+(\.\d+)?$/.test(str)) {
-    const serial = Number(str);
-    if (Number.isFinite(serial)) return excelSerialToUtcDate(serial);
-  }
-
-  // ISO formats
-  const iso = new Date(str);
-  if (!Number.isNaN(iso.getTime()) && /T|^\d{4}-\d{2}-\d{2}/.test(str)) {
-    return iso;
-  }
-
-  // Handles: 6/4/2026, 11:50:10 pm  OR 06-04-2026 11:50:10 PM
-  const match = str.match(
-    /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:,\s*|\s+)?(\d{1,2}):(\d{2}):(\d{2})(?:\s*([ap]m))?$/i
-  );
-
-  if (!match) return null;
-
-  let [, p1, p2, yyyy, hh, mm, ss, meridian] = match;
-  let month;
-  let day;
-
-  const n1 = Number(p1);
-  const n2 = Number(p2);
-
-  if (n1 > 12 && n2 <= 12) {
-    day = n1;
-    month = n2;
-  } else if (n2 > 12 && n1 <= 12) {
-    month = n1;
-    day = n2;
-  } else if (DEFAULT_DATE_ORDER === "DMY") {
-    day = n1;
-    month = n2;
-  } else {
-    month = n1;
-    day = n2;
-  }
-
-  let hour = Number(hh);
-  const minute = Number(mm);
-  const second = Number(ss);
-
-  if (meridian) {
-    const m = meridian.toLowerCase();
-    if (m === "pm" && hour !== 12) hour += 12;
-    if (m === "am" && hour === 12) hour = 0;
-  }
-
-  // Convert IST wall time to UTC instant
-  return new Date(
-    Date.UTC(Number(yyyy), month - 1, day, hour, minute, second) -
-      IST_OFFSET_MINUTES * 60 * 1000
-  );
-};
-
-const planCache = new Map();
-
-async function getNextUserPlan(client, userId, planId, amount) {
-  const key = `${userId}-${planId}`;
-
-  if (!planCache.has(key)) {
-    const plansRes = await client.query(
-      `
-      SELECT id, amount, created_at
-      FROM user_plans
-      WHERE user_id = $1 AND plan_id = $2
-      ORDER BY created_at ASC, id ASC
-      `,
-      [userId, planId]
-    );
-
-    const usageRes = await client.query(
-      `
-      SELECT user_plan_id, COALESCE(SUM(amount), 0) AS earned
-      FROM roi_transactions
-      WHERE user_id = $1 AND plan_id = $2
-      GROUP BY user_plan_id
-      `,
-      [userId, planId]
-    );
-
-    const usageMap = new Map(
-      usageRes.rows.map((r) => [Number(r.user_plan_id), Number(r.earned)])
-    );
-
-    const plans = plansRes.rows.map((p) => ({
-      id: Number(p.id),
-      cap: Number(p.amount) * 2,
-      earned: usageMap.get(Number(p.id)) || 0,
-      createdAt: new Date(p.created_at),
-    }));
-
-    planCache.set(key, plans);
-  }
-
-  const plans = planCache.get(key);
-  const target = plans.find((p) => p.earned + amount <= p.cap);
-
-  if (!target) return null;
-
-  target.earned += amount;
-  return target.id;
-}
+// ================= MAIN =================
 
 const importROI = async () => {
   const client = await pool.connect();
 
   try {
-    console.log("Importing ROI transactions...");
+    console.log("🚀 Importing ROI...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./roi.xlsx", {
-      cellDates: true,
-    });
+    // ✅ Load users once
+    const usersRes = await client.query(
+      "SELECT id, user_code FROM users"
+    );
 
+    const userMap = new Map(
+      usersRes.rows.map((u) => [u.user_code, u.id])
+    );
+
+    // ✅ Read Excel
+    const workbook = xlsx.readFile("./roi.xlsx", { cellDates: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
     const data = xlsx.utils.sheet_to_json(sheet, {
       header: 1,
       raw: false,
-      defval: "",
+      defval: null,
+      blankrows: true,
     });
 
     let inserted = 0;
@@ -194,64 +108,91 @@ const importROI = async () => {
       try {
         const row = data[i];
 
+        if (!row || row.length === 0 || row.every((c) => !c)) {
+          continue;
+        }
+
         const userCode = clean(row[0]);
         const planId = Number(row[1]);
         const amount = parseNumber(row[2]);
-        const createdAt = parseExcelDate(row[3]);
+        const createdAt = parseDate(row[3]);
 
         if (!userCode || !planId || !amount || !createdAt) {
-          console.log(`Row ${i}: invalid data`);
+          console.log(`❌ Invalid row ${i}`);
           skipped++;
           continue;
         }
 
-        const userRes = await client.query(
-          "SELECT id FROM users WHERE user_code = $1",
-          [userCode]
-        );
+        const userId = userMap.get(userCode);
 
-        if (!userRes.rows.length) {
-          console.log(`Row ${i}: user not found (${userCode})`);
+        if (!userId) {
+          console.log(`❌ User not found: ${userCode}`);
           skipped++;
           continue;
         }
 
-        const userId = userRes.rows[0].id;
-        const userPlanId = await getNextUserPlan(client, userId, planId, amount);
+        // 🔥 CORE FIX: LET DB DECIDE CORRECT PLAN
+        let planRes = await client.query(
+  `
+  SELECT id
+  FROM user_plans
+  WHERE user_id = $1
+    AND plan_id = $2
+    AND DATE(created_at) <= DATE($3)
+  ORDER BY created_at DESC
+  LIMIT 1
+  `,
+  [userId, planId, createdAt]
+);
 
-        if (!userPlanId) {
-          console.log(
-            `Row ${i}: no available user_plan for (${userCode}, plan ${planId})`
-          );
-          skipped++;
-          continue;
-        }
+// ✅ FALLBACK (VERY IMPORTANT)
+if (!planRes.rows.length) {
+  planRes = await client.query(
+    `
+    SELECT id
+    FROM user_plans
+    WHERE user_id = $1
+      AND plan_id = $2
+    ORDER BY created_at ASC
+    LIMIT 1
+    `,
+    [userId, planId]
+  );
+}
 
+const userPlanId = planRes.rows[0]?.id;
+
+        // ✅ INSERT
         await client.query(
           `
           INSERT INTO roi_transactions
           (user_id, plan_id, amount, type, created_at, total_earned, user_plan_id)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          VALUES ($1,$2,$3,$4,$5,$6,$7)
           `,
           [userId, planId, amount, "roi", createdAt, amount, userPlanId]
         );
 
         inserted++;
-        console.log(`Row ${i}: ${userCode} -> user_plan_id ${userPlanId}`);
+
+        if (i % 1000 === 0) {
+          console.log(`Processed ${i} rows`);
+        }
+
       } catch (err) {
-        console.log(`Row ${i} error:`, err.message);
+        console.log(`❌ Error row ${i}:`, err.message);
         skipped++;
       }
     }
 
     await client.query("COMMIT");
 
-    console.log("Import completed");
-    console.log(`Inserted: ${inserted}`);
-    console.log(`Skipped: ${skipped}`);
+    console.log("\n🎉 DONE");
+    console.log(`✅ Inserted: ${inserted}`);
+    console.log(`⚠️ Skipped: ${skipped}`);
+
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("Import failed:", err);
+    console.error("❌ Import failed:", err);
   } finally {
     client.release();
   }
