@@ -204,12 +204,10 @@ export const getMyWithdrawals = async (req, res) => {
     const userId = req.user.id;
 
     const result = await pool.query(`
-  SELECT
-    *,
-  FROM withdrawals
-  WHERE user_id = $1
-  ORDER BY id DESC
-`, [userId]);
+      SELECT * FROM withdrawals
+      WHERE user_id=$1
+      ORDER BY id DESC
+    `, [userId]);
 
     res.json(result.rows);
 
@@ -223,15 +221,15 @@ export const getMyWithdrawals = async (req, res) => {
 export const getAllWithdrawals = async (req, res) => {
   try {
     const result = await pool.query(`
-  SELECT
-    w.*,
-    u.name,
-    u.lastname,
-    u.user_code
-  FROM withdrawals w
-  JOIN users u ON u.id = w.user_id
-  ORDER BY w.id DESC
-`);
+      SELECT 
+  w.*,
+  u.name,
+  u.lastname,
+  u.user_code
+FROM withdrawals w
+JOIN users u ON u.id = w.user_id
+ORDER BY w.id DESC;
+    `);
 
     res.json(result.rows);
 
