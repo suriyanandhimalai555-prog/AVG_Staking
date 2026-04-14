@@ -243,15 +243,18 @@ ORDER BY w.id DESC;
 export const updateWithdrawStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, transactionId, approvedAmount } = req.body;
 
     await pool.query(
-      `UPDATE withdrawals SET status=$1 WHERE id=$2`,
-      [status, id]
+      `UPDATE withdrawals
+       SET status = $1,
+           transaction_id = COALESCE($2, transaction_id),
+           approved_amount = COALESCE($3, approved_amount)
+       WHERE id = $4`,
+      [status, transactionId || null, approvedAmount ?? null, id]
     );
 
     res.json({ message: "Status updated" });
-
   } catch (err) {
     console.error("updateWithdrawStatus error:", err);
     res.status(500).json({ error: err.message });

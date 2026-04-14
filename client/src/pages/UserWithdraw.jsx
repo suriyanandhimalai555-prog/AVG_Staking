@@ -25,37 +25,35 @@ const UserWithdraw = () => {
 
   const [errors, setErrors] = useState({});
 
-  // ✅ PAGINATION
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const token = localStorage.getItem("token");
 
   const formatDateTime = (value) => {
-  if (!value) return "-";
+    if (!value) return "-";
 
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return "-";
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return "-";
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
 
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
 
-  const ampm = hours >= 12 ? "PM" : "AM";
+    const ampm = hours >= 12 ? "PM" : "AM";
 
-  hours = hours % 12;
-  hours = hours ? hours : 12;
+    hours = hours % 12;
+    hours = hours ? hours : 12;
 
-  const formattedHours = String(hours).padStart(2, "0");
+    const formattedHours = String(hours).padStart(2, "0");
 
-  return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
-};
+    return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
+  };
 
-  // ✅ FETCH
   const fetchData = async () => {
     try {
       const [summaryRes, withdrawRes] = await Promise.all([
@@ -69,15 +67,22 @@ const UserWithdraw = () => {
 
       setWallets(summaryRes.data);
 
-      const formatted = (withdrawRes.data || []).map((w) => ({
-        id: w.id,
-        currency: w.currency_type,
-        proof: w.transaction_proof || "-",
-        request: `$${Number(w.amount).toFixed(2)}`,
-        approved: `₹${Number(w.approved_amount).toFixed(2)}`,
-        status: w.status,
-        date: w.created_at,
-      }));
+      const formatted = (withdrawRes.data || []).map((w) => {
+        const amount = Number(w.amount || 0);
+        const fee = amount * 0.1;
+        const approvedUsd = amount - fee;
+
+        return {
+          id: w.id,
+          currency: w.currency_type,
+          transactionId: w.transaction_id || "-",
+          proof: w.transaction_proof || "-",
+          request: `$${amount.toFixed(2)}`,
+          approved: `₹${Number(w.approved_amount ?? (approvedUsd * 95)).toFixed(2)}`,
+          status: w.status,
+          date: w.created_at,
+        };
+      });
 
       setData(formatted);
     } catch (err) {
@@ -89,7 +94,6 @@ const UserWithdraw = () => {
     fetchData();
   }, []);
 
-  // ✅ FILTER
   const filteredData = useMemo(() => {
     return data.filter((item) =>
       Object.values(item)
@@ -99,7 +103,6 @@ const UserWithdraw = () => {
     );
   }, [search, data]);
 
-  // ✅ PAGINATION
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
 
   const paginatedData = useMemo(() => {
@@ -111,7 +114,6 @@ const UserWithdraw = () => {
     if (page > totalPages) setPage(1);
   }, [totalPages, page]);
 
-  // ✅ SMART PAGINATION
   const getPagination = () => {
     const pages = [];
     const maxVisible = 5;
@@ -140,7 +142,6 @@ const UserWithdraw = () => {
     return pages;
   };
 
-  // ✅ VALIDATION
   const validate = () => {
     const newErrors = {};
     const amount = Number(form.amount);
@@ -186,8 +187,6 @@ const UserWithdraw = () => {
         <Topbar isOpen={isOpen} setIsOpen={setIsOpen} />
 
         <div className="uwContent">
-
-          {/* HEADER */}
           <div className="uwHeader">
             <h2>Withdraw</h2>
             <button onClick={() => setShowModal(true)}>
@@ -195,7 +194,6 @@ const UserWithdraw = () => {
             </button>
           </div>
 
-          {/* SEARCH */}
           <div className="uwSearch">
             <input
               value={search}
@@ -207,13 +205,13 @@ const UserWithdraw = () => {
             />
           </div>
 
-          {/* TABLE */}
           <div className="uwTableWrapper">
             <table className="uwTable">
               <thead>
                 <tr>
                   <th>S.NO</th>
                   <th>CURRENCY</th>
+                  <th>TXN ID</th>
                   <th>PROOF</th>
                   <th>REQUEST</th>
                   <th>APPROVED</th>
@@ -225,20 +223,19 @@ const UserWithdraw = () => {
               <tbody>
                 {paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan="7">No data</td>
+                    <td colSpan="8">No data</td>
                   </tr>
                 ) : (
                   paginatedData.map((item, i) => (
                     <tr key={item.id}>
                       <td>{(page - 1) * rowsPerPage + i + 1}</td>
                       <td>{item.currency}</td>
+                      <td>{item.transactionId}</td>
                       <td>{item.proof}</td>
                       <td>{item.request}</td>
                       <td>{item.approved}</td>
                       <td>{item.status}</td>
-                      <td>
-                        {formatDateTime(item.date)}
-                      </td>
+                      <td>{formatDateTime(item.date)}</td>
                     </tr>
                   ))
                 )}
@@ -246,9 +243,7 @@ const UserWithdraw = () => {
             </table>
           </div>
 
-          {/* FOOTER */}
           <div className="usrDeposit__footer">
-
             <div className="usrDeposit__rows">
               Rows:
               <select
@@ -264,10 +259,9 @@ const UserWithdraw = () => {
             </div>
 
             <div className="usrDeposit__pagination">
-
               <button
                 disabled={page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 {"<"}
               </button>
@@ -288,25 +282,18 @@ const UserWithdraw = () => {
 
               <button
                 disabled={page === totalPages}
-                onClick={() =>
-                  setPage(p => Math.min(totalPages, p + 1))
-                }
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               >
                 {">"}
               </button>
-
             </div>
-
           </div>
-
         </div>
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div className="uw2Overlay">
           <div className="uw2Modal">
-
             <div className="uw2Header">
               <h3>Create Withdraw</h3>
               <button onClick={() => setShowModal(false)}>✕</button>
@@ -316,7 +303,6 @@ const UserWithdraw = () => {
               Live USDT Price: ${wallets.usdtPrice}
             </div>
 
-            {/* STATS */}
             <div className="uw2Stats">
               <div><p>ROI</p><h4>${wallets.roi}</h4></div>
               <div><p>Level</p><h4>${wallets.level}</h4></div>
@@ -324,9 +310,7 @@ const UserWithdraw = () => {
               <div><p>Reward</p><h4>${wallets.reward}</h4></div>
             </div>
 
-            {/* FORM */}
             <div className="uw2Form">
-
               <div className="uw2Field">
                 <label>Wallet Type</label>
                 <select
@@ -371,23 +355,21 @@ const UserWithdraw = () => {
                 />
                 <span className="error">{errors.amount}</span>
               </div>
-
             </div>
 
-            {/* NOTES */}
             <div className="uw2Notes">
               <h4>Withdraw Notes</h4>
               <ul>
                 <li>Minimum withdrawal is <b>$20</b></li>
                 <li>Ensure wallet balance is sufficient</li>
-                <li>Approval may take some time</li> </ul>
+                <li>Approval may take some time</li>
+              </ul>
             </div>
 
             <div className="uw2Footer">
               <button className="uw2Cancel" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="uw2Submit" onClick={handleSubmit}>Create Withdraw</button>
             </div>
-
           </div>
         </div>
       )}

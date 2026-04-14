@@ -15,7 +15,6 @@ const WithdrawTransactions = () => {
 
   const dropdownRef = useRef(null);
   const token = localStorage.getItem("token");
-
   const EXCHANGE_RATE = 95;
 
   const formatDateTime = (value) => {
@@ -44,15 +43,20 @@ const WithdrawTransactions = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/all`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const formatted = (res.data || []).map((d) => {
         const amount = Number(d.amount || 0);
         const fee = amount * 0.1;
-        const approvedUsd = amount - fee;
-        const approvedInr = approvedUsd * EXCHANGE_RATE;
+        const approvedUsd = Number(d.approved_amount ?? amount - fee);
+        const approvedInr = Number(
+          d.approved_amount ? d.approved_amount : approvedUsd * EXCHANGE_RATE
+        );
 
         return {
           id: d.id,
@@ -63,7 +67,7 @@ const WithdrawTransactions = () => {
           fee: fee.toFixed(2),
           approvedUsd: approvedUsd.toFixed(2),
           approvedInr: approvedInr.toFixed(2),
-          transactionId: d.transaction_id || d.transactionId || "",
+          transactionId: d.transaction_id || "",
           currency: d.currency_type || "USD",
           proof: d.proof || d.transaction_proof || d.tx_proof || "-",
           status: d.status || "PENDING",
@@ -99,6 +103,7 @@ const WithdrawTransactions = () => {
         d.user.toLowerCase().includes(q) ||
         d.wallet.toLowerCase().includes(q) ||
         d.amountDisplay.toLowerCase().includes(q) ||
+        d.transactionId.toLowerCase().includes(q) ||
         d.proof.toLowerCase().includes(q) ||
         d.status.toLowerCase().includes(q)
       );
@@ -152,9 +157,12 @@ const WithdrawTransactions = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${deleteId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${deleteId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setDeleteId(null);
       setMenu(null);
@@ -169,16 +177,34 @@ const WithdrawTransactions = () => {
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const saveEdit = () => {
-    setData((prev) => prev.map((d) => (d.id === editData.id ? editData : d)));
-    setEditData(null);
-  };
-
-  const approve = async (id) => {
+  const saveEdit = async () => {
     try {
       await axios.put(
-        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${id}/status`,
-        { status: "APPROVED" },
+        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${editData.id}/status`,
+        {
+          status: editData.status,
+          transactionId: editData.transactionId || null,
+          approvedAmount: Number(editData.approvedInr || 0),
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setEditData(null);
+      fetchData();
+    } catch (err) {
+      console.error("Save edit error:", err);
+    }
+  };
+
+  const approve = async (d) => {
+    try {
+      await axios.put(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals/${d.id}/status`,
+        {
+          status: "APPROVED",
+          transactionId: d.transactionId || null,
+          approvedAmount: Number(d.approvedInr || 0),
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMenu(null);
@@ -211,7 +237,7 @@ const WithdrawTransactions = () => {
         </div>
 
         <input
-          placeholder="Search by user, wallet type, proof, or status..."
+          placeholder="Search by user, wallet type, proof, txn id, or status..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -227,6 +253,7 @@ const WithdrawTransactions = () => {
               <th>USER</th>
               <th>WALLET TYPE</th>
               <th>REQUEST AMOUNT</th>
+              <th>TXN ID</th>
               <th>TRANSACTION PROOF</th>
               <th>STATUS</th>
               <th>CREATED AT</th>
@@ -242,6 +269,7 @@ const WithdrawTransactions = () => {
                   <td>{d.user}</td>
                   <td>{d.wallet}</td>
                   <td>{d.amountDisplay}</td>
+                  <td>{d.transactionId || "-"}</td>
                   <td>{d.proof}</td>
                   <td>
                     <span className={`status-badge ${String(d.status).toLowerCase()}`}>
@@ -276,7 +304,7 @@ const WithdrawTransactions = () => {
                           Edit
                         </div>
 
-                        <div onClick={() => approve(d.id)}>Approve</div>
+                        <div onClick={() => approve(d)}>Approve</div>
                         <div onClick={() => reject(d.id)}>Reject</div>
 
                         <div
@@ -295,7 +323,7 @@ const WithdrawTransactions = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
+                <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
                   No withdrawals found
                 </td>
               </tr>
@@ -413,9 +441,12 @@ const WithdrawTransactions = () => {
 
                   <div>
                     <span>Status</span>
-                    <b className={`wd-status ${editData.status}`}>
-                      {editData.status}
-                    </b>
+                    <input
+                      type="text"
+                      name="status"
+                      value={editData.status || ""}
+                      onChange={handleEditChange}
+                    />
                   </div>
 
                   <div>
@@ -446,6 +477,7 @@ const WithdrawTransactions = () => {
               <p><b>User:</b> {viewData.user}</p>
               <p><b>Wallet:</b> {viewData.wallet}</p>
               <p><b>Amount:</b> {viewData.amountDisplay}</p>
+              <p><b>Txn ID:</b> {viewData.transactionId || "-"}</p>
               <p><b>Proof:</b> {viewData.proof}</p>
               <p><b>Status:</b> {viewData.status}</p>
               <p><b>Created:</b> {viewData.created}</p>
