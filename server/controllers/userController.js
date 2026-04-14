@@ -717,11 +717,11 @@ export const getMyDepositStats = async (req, res) => {
       SELECT 
         COUNT(*) AS total_count,
 
-        -- 🔥 NORMAL DEPOSIT (unchanged)
+        -- normal deposit
         COALESCE(SUM(amount),0) AS total_amount,
 
-        -- 🔥 CORRECT STAKING (IMPORTANT)
-        COALESCE(SUM(amount * COALESCE(staking_multiplier, 1.667)),0) AS total_staking,
+        -- ✅ correct staking (THIS IS YOUR FIX)
+        COALESCE(SUM(amount * COALESCE(staking_multiplier, 1.667)), 0) AS total_staking,
 
         COUNT(*) FILTER (
           WHERE DATE(created_at) = CURRENT_DATE
@@ -740,7 +740,7 @@ export const getMyDepositStats = async (req, res) => {
     res.json({
       total_count: Number(result.rows[0].total_count),
       total_amount: Number(result.rows[0].total_amount),
-      total_staking: Number(result.rows[0].total_staking), // ✅ NEW
+      total_staking: Number(result.rows[0].total_staking), // ✅ IMPORTANT
       today_count: Number(result.rows[0].today_count),
       today_amount: Number(result.rows[0].today_amount),
     });

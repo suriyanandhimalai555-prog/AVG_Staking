@@ -150,12 +150,6 @@ const UserDashboard = () => {
 
         const teamCount = calcCount(networkRes.data);
 
-        // ✅ GET MULTIPLIER
-        const multRes = await axios.get(
-          `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
         const totalStaking = Number(depositRes.data.total_staking || 0);
 
         // ✅ FINAL STATS
