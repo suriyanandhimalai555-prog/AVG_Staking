@@ -151,29 +151,29 @@ const UserDashboard = () => {
         const teamCount = calcCount(networkRes.data);
 
         // ✅ GET MULTIPLIER
-const multRes = await axios.get(
-  `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
-  { headers: { Authorization: `Bearer ${token}` } }
-);
+        const multRes = await axios.get(
+          `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-const multiplier = Number(multRes.data.multiplier || 1.667);
+        const totalStaking = Number(depositRes.data.total_staking || 0);
 
-// ✅ FINAL STATS
-setStats({
-  staking: Number(totalDepositAmount) * multiplier,
-  totalDeposits,
-  totalDepositAmount,
-  todayDeposits,
-  todayDepositAmount,
-  totalWithdraw,
-  totalWithdrawAmount,
-  todayWithdraw,
-  todayWithdrawAmount,
-  directCount,
-  teamCount,
-  teamBusiness: teamBusinessRes.data.teamBusiness,
-  todayBusiness: teamBusinessRes.data.todayBusiness,
-});
+        // ✅ FINAL STATS
+        setStats({
+          staking: totalStaking,
+          totalDeposits,
+          totalDepositAmount,
+          todayDeposits,
+          todayDepositAmount,
+          totalWithdraw,
+          totalWithdrawAmount,
+          todayWithdraw,
+          todayWithdrawAmount,
+          directCount,
+          teamCount,
+          teamBusiness: teamBusinessRes.data.teamBusiness,
+          todayBusiness: teamBusinessRes.data.todayBusiness,
+        });
 
       } catch (err) {
         console.error("Dashboard error:", err);
@@ -206,10 +206,10 @@ setStats({
           <h4 className="section-title">Earnings</h4>
           <div className="grid grid-4">
             <StatCard
-  title="Total AVG Staking Balance"
-  value={`$${Number(stats.staking).toFixed(2)}`}
-  icon={<FaMoneyBill />}
-/>
+              title="Total AVG Staking Balance"
+              value={`$${Number(stats.staking).toFixed(2)}`}
+              icon={<FaMoneyBill />}
+            />
             <StatCard title="ROI Income" value={`$${earnings.roi}`} icon={<FaChartLine />} />
             <StatCard title="Level Income" value={`$${earnings.level}`} icon={<FaLayerGroup />} />
             <StatCard title="Direct Income" value={`$${earnings.direct}`} icon={<FaWallet />} />

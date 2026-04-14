@@ -716,8 +716,13 @@ export const getMyDepositStats = async (req, res) => {
       `
       SELECT 
         COUNT(*) AS total_count,
+
+        -- 🔥 NORMAL DEPOSIT (unchanged)
         COALESCE(SUM(amount),0) AS total_amount,
-        
+
+        -- 🔥 CORRECT STAKING (IMPORTANT)
+        COALESCE(SUM(amount * COALESCE(staking_multiplier, 1.667)),0) AS total_staking,
+
         COUNT(*) FILTER (
           WHERE DATE(created_at) = CURRENT_DATE
         ) AS today_count,
@@ -732,7 +737,13 @@ export const getMyDepositStats = async (req, res) => {
       [userId]
     );
 
-    res.json(result.rows[0]);
+    res.json({
+      total_count: Number(result.rows[0].total_count),
+      total_amount: Number(result.rows[0].total_amount),
+      total_staking: Number(result.rows[0].total_staking), // ✅ NEW
+      today_count: Number(result.rows[0].today_count),
+      today_amount: Number(result.rows[0].today_amount),
+    });
 
   } catch (err) {
     console.error("deposit stats error:", err);
