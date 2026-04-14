@@ -27,8 +27,7 @@ const DepositTransactions = () => {
 const formatDateTime = (value) => {
   if (!value) return "-";
 
-  // 🔥 FIX: force it as LOCAL time (NOT UTC)
-  const date = new Date(value.replace(" ", "T"));
+  const date = new Date(value);
 
   if (isNaN(date.getTime())) return "-";
 
@@ -40,8 +39,7 @@ const formatDateTime = (value) => {
   const minutes = String(date.getMinutes()).padStart(2, "0");
   const seconds = String(date.getSeconds()).padStart(2, "0");
 
-  const ampm = hours >= 12 ? "pm" : "am";
-
+  const ampm = hours >= 12 ? "am" : "pm";
   hours = hours % 12 || 12;
 
   return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
