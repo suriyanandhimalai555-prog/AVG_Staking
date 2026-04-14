@@ -338,7 +338,7 @@ const UserWithdraw = () => {
                   <option value="">Select Wallet</option>
                   <option value="roi">ROI (${wallets.roi})</option>
                   <option value="level">Level (${wallets.level})</option>
-                  <option value="directReferral">
+                  <option value="direct">
                     Direct (${wallets.direct})
                   </option>
                   <option value="reward">Reward (${wallets.reward})</option>
