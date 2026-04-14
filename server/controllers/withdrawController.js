@@ -206,7 +206,6 @@ export const getMyWithdrawals = async (req, res) => {
     const result = await pool.query(`
   SELECT
     *,
-    COALESCE(created_at, NOW()) AS created_at
   FROM withdrawals
   WHERE user_id = $1
   ORDER BY id DESC
@@ -226,7 +225,6 @@ export const getAllWithdrawals = async (req, res) => {
     const result = await pool.query(`
   SELECT
     w.*,
-    COALESCE(w.created_at, NOW()) AS created_at,
     u.name,
     u.lastname,
     u.user_code
