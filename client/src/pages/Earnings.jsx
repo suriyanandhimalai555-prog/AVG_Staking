@@ -8,7 +8,7 @@ const Earnings = ({ activeEarningType = 'ROI' }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   useEffect(() => {
     setActiveTab(activeEarningType.toLowerCase());
     setCurrentPage(1); // Reset page when tab changes
@@ -62,7 +62,7 @@ const Earnings = ({ activeEarningType = 'ROI' }) => {
   };
 
   const getTitle = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'roi': return 'My ROI Income';
       case 'direct': return 'My Direct Income';
       case 'level': return 'My Level Income';
@@ -71,7 +71,7 @@ const Earnings = ({ activeEarningType = 'ROI' }) => {
   };
 
   const getData = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'roi': return roiData;
       case 'direct': return directData;
       case 'level': return levelData;
@@ -118,15 +118,15 @@ const Earnings = ({ activeEarningType = 'ROI' }) => {
     <div className="earnings-container">
       <div className="earnings-header">
         <h1 className="earnings-title">{getTitle()}</h1>
-        
-      
+
+
       </div>
 
       <div className="search-section">
-        <input 
-          type="text" 
-          className="search-input" 
-          placeholder="Search..." 
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search..."
           value={searchTerm}
           onChange={handleSearch}
         />
@@ -182,12 +182,12 @@ const Earnings = ({ activeEarningType = 'ROI' }) => {
           </span>
         </div>
         <div className="pagination">
-          <button 
-            className="page-btn" 
+          <button
+            className="page-btn"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >Previous</button>
-          
+
           {[...Array(totalPages)].map((_, i) => (
             <button
               key={i + 1}
@@ -197,9 +197,9 @@ const Earnings = ({ activeEarningType = 'ROI' }) => {
               {i + 1}
             </button>
           ))}
-          
-          <button 
-            className="page-btn" 
+
+          <button
+            className="page-btn"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages || totalPages === 0}
           >Next</button>

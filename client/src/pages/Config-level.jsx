@@ -46,8 +46,8 @@ const LevelConfig = () => {
     const displayPercentage = rawPercentage.endsWith("%")
       ? rawPercentage
       : rawPercentage
-      ? `${rawPercentage}%`
-      : "";
+        ? `${rawPercentage}%`
+        : "";
 
     const rawStatus = row.status;
 
@@ -263,9 +263,8 @@ const LevelConfig = () => {
                   <td>{item.percentage}</td>
                   <td>
                     <button
-                      className={`cf-toggle-btn ${
-                        item.status ? "cf-active" : "cf-inactive"
-                      }`}
+                      className={`cf-toggle-btn ${item.status ? "cf-active" : "cf-inactive"
+                        }`}
                       onClick={() => toggleStatus(item)}
                     >
                       <span className="cf-toggle-slider" />
@@ -314,9 +313,9 @@ const LevelConfig = () => {
             {filtered.length === 0
               ? "0-0 of 0"
               : `${indexOfFirstItem + 1}-${Math.min(
-                  indexOfLastItem,
-                  filtered.length
-                )} of ${filtered.length}`}
+                indexOfLastItem,
+                filtered.length
+              )} of ${filtered.length}`}
           </span>
         </div>
 
@@ -357,10 +356,10 @@ const LevelConfig = () => {
                 {modalType === "delete"
                   ? "Confirm Delete"
                   : modalType === "edit"
-                  ? "Edit Configuration"
-                  : modalType === "add"
-                  ? "Add Configuration"
-                  : "Configuration Details"}
+                    ? "Edit Configuration"
+                    : modalType === "add"
+                      ? "Add Configuration"
+                      : "Configuration Details"}
               </h3>
               <button
                 className="cf-modal-close"
@@ -444,14 +443,14 @@ const LevelConfig = () => {
               {(modalType === "delete" ||
                 modalType === "edit" ||
                 modalType === "add") && (
-                <button className="cf-modal-btn confirm" onClick={confirmModal}>
-                  {modalType === "delete"
-                    ? "Delete"
-                    : modalType === "edit"
-                    ? "Save"
-                    : "Create"}
-                </button>
-              )}
+                  <button className="cf-modal-btn confirm" onClick={confirmModal}>
+                    {modalType === "delete"
+                      ? "Delete"
+                      : modalType === "edit"
+                        ? "Save"
+                        : "Create"}
+                  </button>
+                )}
             </div>
           </div>
         </div>
