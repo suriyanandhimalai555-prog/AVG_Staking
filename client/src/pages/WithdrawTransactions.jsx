@@ -16,29 +16,31 @@ const WithdrawTransactions = () => {
   const dropdownRef = useRef(null);
   const token = localStorage.getItem("token");
 
+  const EXCHANGE_RATE = 95;
+
   const formatDateTime = (value) => {
-  if (!value) return "-";
+    if (!value) return "-";
 
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return "-";
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return "-";
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
 
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
 
-  const ampm = hours >= 12 ? "PM" : "AM";
+    const ampm = hours >= 12 ? "PM" : "AM";
 
-  hours = hours % 12;
-  hours = hours ? hours : 12;
+    hours = hours % 12;
+    hours = hours ? hours : 12;
 
-  const formattedHours = String(hours).padStart(2, "0");
+    const formattedHours = String(hours).padStart(2, "0");
 
-  return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
-};
+    return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -49,7 +51,8 @@ const WithdrawTransactions = () => {
       const formatted = (res.data || []).map((d) => {
         const amount = Number(d.amount || 0);
         const fee = amount * 0.1;
-        const approved = amount - fee;
+        const approvedUsd = amount - fee;
+        const approvedInr = approvedUsd * EXCHANGE_RATE;
 
         return {
           id: d.id,
@@ -58,7 +61,9 @@ const WithdrawTransactions = () => {
           amount,
           amountDisplay: `$${amount.toFixed(2)}`,
           fee: fee.toFixed(2),
-          approved: approved.toFixed(2),
+          approvedUsd: approvedUsd.toFixed(2),
+          approvedInr: approvedInr.toFixed(2),
+          transactionId: d.transaction_id || d.transactionId || "",
           currency: d.currency_type || "USD",
           proof: d.proof || d.transaction_proof || d.tx_proof || "-",
           status: d.status || "PENDING",
@@ -381,12 +386,29 @@ const WithdrawTransactions = () => {
 
                   <div>
                     <span>Fee (10%)</span>
-                    <b>${editData.fee}</b>
+                    <b>${Number(editData.fee || 0).toFixed(2)}</b>
                   </div>
 
                   <div>
-                    <span>Approved</span>
-                    <b>${editData.approved}</b>
+                    <span>Approved Amount (₹)</span>
+                    <input
+                      type="number"
+                      name="approvedInr"
+                      value={editData.approvedInr || ""}
+                      onChange={handleEditChange}
+                      step="0.01"
+                    />
+                  </div>
+
+                  <div>
+                    <span>Transaction ID</span>
+                    <input
+                      type="text"
+                      name="transactionId"
+                      value={editData.transactionId || ""}
+                      onChange={handleEditChange}
+                      placeholder="Enter transaction ID"
+                    />
                   </div>
 
                   <div>
