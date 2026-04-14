@@ -7,102 +7,105 @@ const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: false,
 });
 
 const fixROI = async () => {
+  const client = await pool.connect();
+
   try {
-    const userCode = "AVG78022";
+    await client.query("BEGIN");
+
+    const userCode = "AVG37301";
+
+    // 🎯 TARGETS (latest → oldest)
+    const targets = [21, 37.5, 52.5, 117, 20];
 
     // 1. Get user
-    const userRes = await pool.query(
-      "SELECT id FROM users WHERE user_code = $1",
+    const userRes = await client.query(
+      `SELECT id FROM users WHERE user_code = $1`,
       [userCode]
     );
-
-    if (!userRes.rows.length) {
-      console.log("❌ User not found");
-      return;
-    }
-
     const userId = userRes.rows[0].id;
 
-    // 2. Get plans (ASC → old first, new second)
-    const plansRes = await pool.query(
-      `
-      SELECT id, created_at
-      FROM user_plans
-      WHERE user_id = $1
-      ORDER BY created_at ASC, id ASC
-      `,
+    // 2. Plans (latest first)
+    const plansRes = await client.query(
+      `SELECT id FROM user_plans WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );
+    const plans = plansRes.rows;
 
-    let plans = plansRes.rows;
-
-    if (plans.length < 2) {
-      console.log("❌ Need at least 2 plans");
-      return;
-    }
-
-    // 🔥 Ensure correct order (extra safety)
-    plans = plans.sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    );
-
-    const oldPlanId = plans[0].id;  // 18 Feb
-    const newPlanId = plans[1].id;  // 24 Feb
-
-    // 3. Get ROI rows
-    const roiRes = await pool.query(
-      `
-      SELECT id
-      FROM roi_transactions
-      WHERE user_id = $1
-      ORDER BY created_at ASC, id ASC
-      `,
+    // 3. ROI rows (latest first)
+    const roiRes = await client.query(
+      `SELECT id, amount, created_at 
+       FROM roi_transactions 
+       WHERE user_id = $1 
+       ORDER BY created_at DESC, id DESC`,
       [userId]
     );
 
     const roiRows = roiRes.rows;
 
-    console.log("Plans:", plans.length);
-    console.log("ROI rows:", roiRows.length);
-
-    // 🔥 RESET old mapping (IMPORTANT)
-    await pool.query(
-      `UPDATE roi_transactions SET user_plan_id = NULL WHERE user_id = $1`,
+    // ❌ DELETE OLD (important)
+    await client.query(
+      `DELETE FROM roi_transactions WHERE user_id = $1`,
       [userId]
     );
 
-    // ✅ 4. TARGET BASED SPLIT (CORRECTED)
-    const targetNewPlanAmount = 17; // NEW plan gets this
-    let sum = 0;
+    let planIndex = 0;
+    let accumulated = 0;
 
     for (let i = 0; i < roiRows.length; i++) {
-      const roi = roiRows[i];
-      let planId;
+      if (!plans[planIndex]) break;
 
-      if (sum < targetNewPlanAmount) {
-        planId = newPlanId;   // ✅ NEW PLAN (24 Feb)
-        sum += 0.5;
-      } else {
-        planId = oldPlanId;   // ✅ OLD PLAN (18 Feb)
+      let amount = parseFloat(roiRows[i].amount);
+      const createdAt = roiRows[i].created_at;
+
+      while (amount > 0 && planIndex < plans.length) {
+        const remaining = targets[planIndex] - accumulated;
+
+        if (remaining <= 0) {
+          planIndex++;
+          accumulated = 0;
+          continue;
+        }
+
+        if (amount <= remaining) {
+          // ✅ full assign
+          await client.query(
+            `INSERT INTO roi_transactions 
+             (user_id, amount, user_plan_id, created_at)
+             VALUES ($1, $2, $3, $4)`,
+            [userId, amount, plans[planIndex].id, createdAt]
+          );
+
+          accumulated += amount;
+          amount = 0;
+        } else {
+          // 🔥 SPLIT
+          await client.query(
+            `INSERT INTO roi_transactions 
+             (user_id, amount, user_plan_id, created_at)
+             VALUES ($1, $2, $3, $4)`,
+            [userId, remaining, plans[planIndex].id, createdAt]
+          );
+
+          amount -= remaining;
+          planIndex++;
+          accumulated = 0;
+        }
       }
-
-      await pool.query(
-        `UPDATE roi_transactions SET user_plan_id = $1 WHERE id = $2`,
-        [planId, roi.id]
-      );
     }
 
-    console.log("✅ ROI FIXED CORRECTLY");
-    console.log("👉 24 Feb → 16.5");
-    console.log("👉 18 Feb → 18.5");
+    await client.query("COMMIT");
+
+    console.log("✅ PERFECT SPLIT WITH EXACT VALUES DONE");
 
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("❌ ERROR:", err.message);
   } finally {
+    client.release();
     await pool.end();
   }
 };

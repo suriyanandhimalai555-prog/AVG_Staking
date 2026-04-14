@@ -176,7 +176,7 @@ const importROI = async () => {
     console.log("Importing ROI transactions...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./roi1.xlsx", {
+    const workbook = xlsx.readFile("./roinew.xlsx", {
       cellDates: true,
     });
 

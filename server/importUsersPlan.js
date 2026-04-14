@@ -75,7 +75,7 @@ const importUserPlans = async () => {
     console.log("🚀 Importing user plans...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./userPlan3.xlsx");
+    const workbook = xlsx.readFile("./userPlan2new.xlsx");
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 

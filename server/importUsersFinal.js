@@ -38,7 +38,7 @@ const importUsers = async () => {
     console.log("🚀 Import started...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./user1.xlsx");
+    const workbook = xlsx.readFile("./user2.xlsx");
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 

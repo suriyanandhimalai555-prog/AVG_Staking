@@ -63,7 +63,7 @@ const importWithdrawals = async () => {
     console.log("🚀 Importing Withdrawals...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./withdraw1.xlsx");
+    const workbook = xlsx.readFile("./withdraw.xlsx");
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 
