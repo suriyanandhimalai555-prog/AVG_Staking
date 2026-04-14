@@ -370,7 +370,7 @@ export const getAllUserPlans = async (req, res) => {
         up.amount,
         ROUND((up.amount * COALESCE(CAST(REGEXP_REPLACE(p.roi, '[^0-9.]', '', 'g') AS NUMERIC),0)) / 100, 2) AS daily_roi,
         up.status,
-        up.created_at
+        (up.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') AS created_at
       FROM user_plans up
 JOIN users u ON u.id = up.user_id
 JOIN plans p ON p.id = up.plan_id
@@ -643,7 +643,7 @@ export const getUserDeposits = async (req, res) => {
         u.user_code AS from_id,
         p.name AS plan_name,
         up.amount,
-        up.created_at
+        (up.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') AS created_at
       FROM user_plans up
       JOIN users u ON u.id = up.user_id
       JOIN plans p ON p.id = up.plan_id
