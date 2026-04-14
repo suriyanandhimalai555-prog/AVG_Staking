@@ -1016,3 +1016,41 @@ export const getMyTeamBusiness = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getStakingMultiplier = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT value FROM system_settings WHERE key = 'staking_multiplier'`
+    );
+
+    res.json({
+      multiplier: Number(result.rows[0]?.value || 1.667),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateStakingMultiplier = async (req, res) => {
+  try {
+    const { multiplier } = req.body;
+
+    if (!multiplier || isNaN(multiplier)) {
+      return res.status(400).json({ message: "Invalid multiplier" });
+    }
+
+    await pool.query(
+      `
+      INSERT INTO system_settings (key, value)
+      VALUES ('staking_multiplier', $1)
+      ON CONFLICT (key)
+      DO UPDATE SET value = EXCLUDED.value
+      `,
+      [multiplier]
+    );
+
+    res.json({ message: "Multiplier updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

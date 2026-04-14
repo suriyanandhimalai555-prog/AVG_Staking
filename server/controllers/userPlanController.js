@@ -184,6 +184,7 @@ export const buyPlan = async (req, res) => {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
+    // ✅ GET PLAN
     const planRes = await pool.query(
       "SELECT * FROM plans WHERE id = $1",
       [planId]
@@ -194,7 +195,14 @@ export const buyPlan = async (req, res) => {
       return res.status(404).json({ message: "Plan not found" });
     }
 
-    // ✅ FIXED ROI CALCULATION
+    // ✅ GET MULTIPLIER FROM DB
+    const multiplierRes = await pool.query(
+      `SELECT value FROM system_settings WHERE key = 'staking_multiplier'`
+    );
+
+    const multiplier = Number(multiplierRes.rows[0]?.value || 1.667);
+
+    // ✅ ROI CALCULATION (based on ORIGINAL amount only)
     const roiPercent = parseFloat(
       String(plan.roi || "0").replace(/[^\d.]/g, "")
     );
@@ -203,13 +211,14 @@ export const buyPlan = async (req, res) => {
 
     await pool.query("BEGIN");
 
+    // ✅ SAVE MULTIPLIER WITH DEPOSIT
     const result = await pool.query(
-  `INSERT INTO user_plans
-    (user_id, plan_id, amount, daily_roi, status, created_at)
-   VALUES ($1, $2, $3, $4, 'pending', NOW())
-   RETURNING *`,
-  [userId, planId, numericAmount, dailyROI]
-);
+      `INSERT INTO user_plans
+        (user_id, plan_id, amount, staking_multiplier, daily_roi, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, 'pending', NOW())
+       RETURNING *`,
+      [userId, planId, numericAmount, multiplier, dailyROI]
+    );
 
     await pool.query("COMMIT");
 

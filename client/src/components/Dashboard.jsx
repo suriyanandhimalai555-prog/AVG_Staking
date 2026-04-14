@@ -15,20 +15,26 @@ import {
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
+  const [multiplier, setMultiplier] = useState("");
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
         const token = localStorage.getItem("token");
 
-        const res = await axios.get(
-          `${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/dashboard`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const [dashboardRes, multRes] = await Promise.all([
+          axios.get(
+            `${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/dashboard`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          ),
+          axios.get(
+            `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          ),
+        ]);
 
-        setData(res.data);
+        setData(dashboardRes.data);
+        setMultiplier(multRes.data.multiplier);
       } catch (err) {
         console.error(err);
       }
@@ -36,6 +42,23 @@ const Dashboard = () => {
 
     fetchDashboard();
   }, []);
+
+  const updateMultiplier = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    await axios.post(
+      `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
+      { multiplier },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    alert("Multiplier updated successfully");
+  } catch (err) {
+    console.error(err);
+    alert("Update failed");
+  }
+};
 
   if (!data) return <div className="dash-loading">Loading...</div>;
 
@@ -87,6 +110,43 @@ const Dashboard = () => {
         <Card title="In Progress" value={data.tickets.progress} icon={<FaMoneyBillWave />} color="yellow" />
         <Card title="Closed Tickets" value={data.tickets.closed} icon={<FaUserCheck />} color="green" />
       </div>
+
+      <h2 className="dash-section">AVG Staking Settings</h2>
+
+<div className="dash-grid-3">
+  <div className="dash-card dash-yellow">
+    <div>
+      <p className="dash-card-title">Staking Multiplier</p>
+      <h3 className="dash-card-value">{multiplier}</h3>
+    </div>
+
+    <input
+      type="number"
+      value={multiplier}
+      onChange={(e) => setMultiplier(e.target.value)}
+      style={{
+        marginTop: "10px",
+        padding: "10px",
+        width: "100%",
+      }}
+    />
+
+    <button
+      onClick={updateMultiplier}
+      style={{
+        marginTop: "10px",
+        padding: "10px",
+        width: "100%",
+        background: "#333",
+        color: "#fff",
+        border: "none",
+        cursor: "pointer",
+      }}
+    >
+      Update Multiplier
+    </button>
+  </div>
+</div>
     </div>
   );
 };
