@@ -205,7 +205,10 @@ export const buyPlan = async (req, res) => {
     const result = await pool.query(
   `INSERT INTO user_plans
     (user_id, plan_id, amount, daily_roi, status, created_at)
-   VALUES ($1, $2, $3, $4, 'pending', NOW() AT TIME ZONE 'Asia/Kolkata')
+   VALUES (
+     $1, $2, $3, $4, 'pending',
+     (NOW() AT TIME ZONE 'UTC') + INTERVAL '5 hours 30 minutes'
+   )
    RETURNING *`,
   [userId, planId, numericAmount, dailyROI]
 );
