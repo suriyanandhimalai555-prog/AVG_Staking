@@ -134,35 +134,36 @@ const insertEarning = async ({
     const toInsert = Math.min(capacity, remainingAmount);
 
     await pool.query(
-      `
-      INSERT INTO level_income
-      (
-        user_id,
-        from_user_id,
-        to_user_code,
-        from_user_code,
-        user_plan_id,
-        credited_user_plan_id,
-        level,
-        amount,
-        percentage,
-        income_type
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      `,
-      [
-        receiverUserId,
-        fromUserId,
-        receiverUserCode,
-        fromUserCode,
-        sourceUserPlanId,
-        plan.id,
-        level,
-        toInsert,
-        percentage,
-        incomeType,
-      ]
-    );
+  `
+  INSERT INTO level_income
+  (
+    user_id,
+    from_user_id,
+    to_user_code,
+    from_user_code,
+    user_plan_id,
+    credited_user_plan_id,
+    level,
+    amount,
+    percentage,
+    income_type,
+    created_at
+  )
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+  `,
+  [
+    receiverUserId,
+    fromUserId,
+    receiverUserCode,
+    fromUserCode,
+    sourceUserPlanId,
+    plan.id,
+    level,
+    toInsert,
+    percentage,
+    incomeType,
+  ]
+);
 
     remainingAmount -= toInsert;
   }
