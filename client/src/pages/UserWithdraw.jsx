@@ -211,7 +211,7 @@ const UserWithdraw = () => {
                 <tr>
                   <th>S.NO</th>
                   <th>CURRENCY</th>
-                  <th>TXN ID</th>
+                  {/* <th>TXN ID</th> */}
                   <th>PROOF</th>
                   <th>REQUEST</th>
                   <th>APPROVED</th>
@@ -230,8 +230,8 @@ const UserWithdraw = () => {
                     <tr key={item.id}>
                       <td>{(page - 1) * rowsPerPage + i + 1}</td>
                       <td>{item.currency}</td>
-                      <td>{item.transactionId}</td>
-                      <td>{item.proof}</td>
+                      {/* <td></td> */}
+                      <td>{item.proof}{item.transactionId}</td>
                       <td>{item.request}</td>
                       <td>{item.approved}</td>
                       <td>{item.status}</td>
