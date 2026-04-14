@@ -123,11 +123,12 @@ const Dashboard = () => {
       >
         <div
           style={{
-            background: "#ffffff",
-            borderRadius: "12px",
+            background: "#162a5a", // 🔥 match your card color
+            borderRadius: "16px",
             padding: "20px",
             width: "320px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
             display: "flex",
             flexDirection: "column",
             gap: "15px",
@@ -137,8 +138,8 @@ const Dashboard = () => {
           <div>
             <p
               style={{
-                fontSize: "14px",
-                color: "#888",
+                fontSize: "13px",
+                color: "#aab3d1",
                 marginBottom: "5px",
               }}
             >
@@ -149,7 +150,7 @@ const Dashboard = () => {
               style={{
                 fontSize: "28px",
                 fontWeight: "600",
-                color: "#222",
+                color: "#ffffff",
               }}
             >
               {multiplier}
@@ -164,11 +165,12 @@ const Dashboard = () => {
             onChange={(e) => setMultiplier(e.target.value)}
             style={{
               padding: "12px",
-              borderRadius: "8px",
-              border: "1px solid #ddd",
+              borderRadius: "10px",
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "#0f1f47",
+              color: "#fff",
               fontSize: "14px",
               outline: "none",
-              transition: "0.2s",
             }}
           />
 
@@ -177,9 +179,9 @@ const Dashboard = () => {
             onClick={updateMultiplier}
             style={{
               padding: "12px",
-              borderRadius: "8px",
+              borderRadius: "10px",
               border: "none",
-              background: "linear-gradient(135deg, #4facfe, #00f2fe)",
+              background: "linear-gradient(135deg, #3b82f6, #22c55e)",
               color: "#fff",
               fontWeight: "600",
               fontSize: "14px",
