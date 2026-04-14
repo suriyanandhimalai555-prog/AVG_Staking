@@ -8,24 +8,27 @@ const ROIEarnings = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
 
-  // ✅ SAFE DATE FORMATTER (FIXES 1970 ISSUE)
-  const formatDateTime = (value) => {
-    if (!value) return "-";
+const formatDateTime = (value) => {
+  if (!value) return "-";
 
-    const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return "-";
+  // 🔥 DO NOT use timezone conversion
+  const date = new Date(value.replace(" ", "T"));
 
-    return new Intl.DateTimeFormat("en-IN", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-    }).format(date);
-  };
+  if (isNaN(date.getTime())) return "-";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  const ampm = hours >= 12 ? "pm" : "am";
+  hours = hours % 12 || 12;
+
+  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
+};
 
   // ✅ FETCH DATA
   const fetchROI = async () => {
