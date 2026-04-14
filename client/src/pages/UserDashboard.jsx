@@ -152,7 +152,7 @@ const UserDashboard = () => {
 
         // ✅ FINAL STATS
         setStats({
-          staking: totalDepositAmount,
+          staking: (totalDepositAmount * 1.667).toFixed(2),
           totalDeposits,
           totalDepositAmount,
           todayDeposits,
@@ -197,7 +197,7 @@ const UserDashboard = () => {
           {/* ✅ EARNINGS (NO DEDUCTION) */}
           <h4 className="section-title">Earnings</h4>
           <div className="grid grid-4">
-            <StatCard title="Total Staking" value={`$${stats.staking}`} icon={<FaMoneyBill />} />
+            <StatCard title="Total AVG Staking Balance" value={`$${stats.staking}`} icon={<FaMoneyBill />} />
             <StatCard title="ROI Income" value={`$${earnings.roi}`} icon={<FaChartLine />} />
             <StatCard title="Level Income" value={`$${earnings.level}`} icon={<FaLayerGroup />} />
             <StatCard title="Direct Income" value={`$${earnings.direct}`} icon={<FaWallet />} />
