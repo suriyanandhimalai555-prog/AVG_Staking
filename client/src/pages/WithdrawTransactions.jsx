@@ -270,7 +270,7 @@ const WithdrawTransactions = () => {
                   <td>{d.wallet}</td>
                   <td>{d.amountDisplay}</td>
                   {/* <td></td> */}
-                  <td>{d.proof} {d.transactionId || "-"}</td>
+                  <td>{d.proof} {d.transactionId}</td>
                   <td>
                     <span className={`status-badge ${String(d.status).toLowerCase()}`}>
                       {d.status}
