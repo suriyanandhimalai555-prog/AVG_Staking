@@ -253,7 +253,7 @@ const WithdrawTransactions = () => {
               <th>USER</th>
               <th>WALLET TYPE</th>
               <th>REQUEST AMOUNT</th>
-              <th>TXN ID</th>
+              {/* <th>TXN ID</th> */}
               <th>TRANSACTION PROOF</th>
               <th>STATUS</th>
               <th>CREATED AT</th>
@@ -269,8 +269,8 @@ const WithdrawTransactions = () => {
                   <td>{d.user}</td>
                   <td>{d.wallet}</td>
                   <td>{d.amountDisplay}</td>
-                  <td>{d.transactionId || "-"}</td>
-                  <td>{d.proof}</td>
+                  {/* <td></td> */}
+                  <td>{d.proof} {d.transactionId || "-"}</td>
                   <td>
                     <span className={`status-badge ${String(d.status).toLowerCase()}`}>
                       {d.status}
