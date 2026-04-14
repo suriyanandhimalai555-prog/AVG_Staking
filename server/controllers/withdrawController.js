@@ -184,11 +184,11 @@ export const createWithdraw = async (req, res) => {
     }
 
     await pool.query(
-      `INSERT INTO withdrawals
-       (user_id, wallet_type, currency_type, amount, status)
-       VALUES ($1, $2, $3, $4, 'pending')`,
-      [userId, walletType, currencyType, amt]
-    );
+  `INSERT INTO withdrawals
+   (user_id, wallet_type, currency_type, amount, status, created_at)
+   VALUES ($1, $2, $3, $4, 'pending', NOW())`,
+  [userId, walletType, currencyType, amt]
+);
 
     res.json({ message: "Withdraw request created" });
 
@@ -204,10 +204,13 @@ export const getMyWithdrawals = async (req, res) => {
     const userId = req.user.id;
 
     const result = await pool.query(`
-      SELECT * FROM withdrawals
-      WHERE user_id=$1
-      ORDER BY id DESC
-    `, [userId]);
+  SELECT
+    *,
+    COALESCE(created_at, NOW()) AS created_at
+  FROM withdrawals
+  WHERE user_id = $1
+  ORDER BY id DESC
+`, [userId]);
 
     res.json(result.rows);
 
@@ -221,15 +224,16 @@ export const getMyWithdrawals = async (req, res) => {
 export const getAllWithdrawals = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
-  w.*,
-  u.name,
-  u.lastname,
-  u.user_code
-FROM withdrawals w
-JOIN users u ON u.id = w.user_id
-ORDER BY w.id DESC;
-    `);
+  SELECT
+    w.*,
+    COALESCE(w.created_at, NOW()) AS created_at,
+    u.name,
+    u.lastname,
+    u.user_code
+  FROM withdrawals w
+  JOIN users u ON u.id = w.user_id
+  ORDER BY w.id DESC
+`);
 
     res.json(result.rows);
 

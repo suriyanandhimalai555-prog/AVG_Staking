@@ -51,29 +51,29 @@ const WithdrawTransactions = () => {
       );
 
       const formatted = (res.data || []).map((d) => {
-        const amount = Number(d.amount || 0);
-        const fee = amount * 0.1;
-        const approvedUsd = Number(d.approved_amount ?? amount - fee);
-        const approvedInr = Number(
-          d.approved_amount ? d.approved_amount : approvedUsd * EXCHANGE_RATE
-        );
+  const amount = Number(d.amount || 0);
+  const fee = amount * 0.1;
+  const approvedUsd = Number(d.approved_amount ?? amount - fee);
+  const approvedInr = Number(
+    d.approved_amount ? d.approved_amount : approvedUsd * EXCHANGE_RATE
+  );
 
-        return {
-          id: d.id,
-          user: `${d.name || ""} ${d.lastname || ""} (${d.user_code || "-"})`.trim(),
-          wallet: d.wallet_type || "-",
-          amount,
-          amountDisplay: `$${amount.toFixed(2)}`,
-          fee: fee.toFixed(2),
-          approvedUsd: approvedUsd.toFixed(2),
-          approvedInr: approvedInr.toFixed(2),
-          transactionId: d.transaction_id || "",
-          currency: d.currency_type || "USD",
-          proof: d.proof || d.transaction_proof || d.tx_proof || "-",
-          status: d.status || "PENDING",
-          created: formatDateTime(d.created_at),
-        };
-      });
+  return {
+    id: d.id,
+    user: `${d.name || ""} ${d.lastname || ""} (${d.user_code || "-"})`.trim(),
+    wallet: d.wallet_type || "-",
+    amount,
+    amountDisplay: `$${amount.toFixed(2)}`,
+    fee: fee.toFixed(2),
+    approvedUsd: approvedUsd.toFixed(2),
+    approvedInr: approvedInr.toFixed(2),
+    transactionId: d.transaction_id || "",
+    currency: d.currency_type || "USD",
+    proof: d.proof || d.transaction_proof || d.tx_proof || "",
+    status: d.status || "PENDING",
+    created: formatDateTime(d.created_at),
+  };
+});
 
       setData(formatted);
     } catch (err) {
@@ -271,11 +271,11 @@ const WithdrawTransactions = () => {
                   <td>{d.amountDisplay}</td>
                   {/* <td></td> */}
                   <td>
-  {[d.proof !== "-" ? d.proof : null,
-    d.transactionId !== "-" ? d.transactionId : null]
-    .filter(Boolean)
-    .join(" | ") || "-"}
-</td>
+                    {[d.proof !== "-" ? d.proof : null,
+                    d.transactionId !== "-" ? d.transactionId : null]
+                      .filter(Boolean)
+                      .join(" | ") || "-"}
+                  </td>
                   <td>
                     <span className={`status-badge ${String(d.status).toLowerCase()}`}>
                       {d.status}

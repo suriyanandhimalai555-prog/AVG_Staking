@@ -68,21 +68,21 @@ const UserWithdraw = () => {
       setWallets(summaryRes.data);
 
       const formatted = (withdrawRes.data || []).map((w) => {
-        const amount = Number(w.amount || 0);
-        const fee = amount * 0.1;
-        const approvedUsd = amount - fee;
+  const amount = Number(w.amount || 0);
+  const fee = amount * 0.1;
+  const approvedUsd = amount - fee;
 
-        return {
-          id: w.id,
-          currency: w.currency_type,
-          transactionId: w.transaction_id || "-",
-          proof: w.transaction_proof || "-",
-          request: `$${amount.toFixed(2)}`,
-          approved: `₹${Number(w.approved_amount ?? (approvedUsd * 95)).toFixed(2)}`,
-          status: w.status,
-          date: w.created_at,
-        };
-      });
+  return {
+    id: w.id,
+    currency: w.currency_type,
+    transactionId: w.transaction_id || "",
+    proof: w.transaction_proof || "",
+    request: `$${amount.toFixed(2)}`,
+    approved: `₹${Number(w.approved_amount ?? (approvedUsd * 95)).toFixed(2)}`,
+    status: w.status,
+    date: w.created_at,
+  };
+});
 
       setData(formatted);
     } catch (err) {
@@ -232,10 +232,10 @@ const UserWithdraw = () => {
                       <td>{item.currency}</td>
                       {/* <td></td> */}
                       <td>
-  {item.proof !== "-" && item.proof}
-  {item.proof !== "-" && item.transactionId !== "-" && " | "}
-  {item.transactionId !== "-" && item.transactionId}
-</td>
+                        {item.proof !== "-" && item.proof}
+                        {item.proof !== "-" && item.transactionId !== "-" && " | "}
+                        {item.transactionId !== "-" && item.transactionId}
+                      </td>
                       <td>{item.request}</td>
                       <td>{item.approved}</td>
                       <td>{item.status}</td>
