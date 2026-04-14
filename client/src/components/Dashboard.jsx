@@ -12,6 +12,7 @@ import {
   FaWallet,
   FaTicketAlt
 } from "react-icons/fa";
+import toast from "react-hot-toast";
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -44,21 +45,21 @@ const Dashboard = () => {
   }, []);
 
   const updateMultiplier = async () => {
-  try {
-    const token = localStorage.getItem("token");
+    try {
+      const token = localStorage.getItem("token");
 
-    await axios.post(
-      `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
-      { multiplier },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      await axios.post(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
+        { multiplier },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    alert("Multiplier updated successfully");
-  } catch (err) {
-    console.error(err);
-    alert("Update failed");
-  }
-};
+      toast.success("Multiplier updated successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update multiplier");
+    }
+  };
 
   if (!data) return <div className="dash-loading">Loading...</div>;
 
@@ -113,40 +114,83 @@ const Dashboard = () => {
 
       <h2 className="dash-section">AVG Staking Settings</h2>
 
-<div className="dash-grid-3">
-  <div className="dash-card dash-yellow">
-    <div>
-      <p className="dash-card-title">Staking Multiplier</p>
-      <h3 className="dash-card-value">{multiplier}</h3>
-    </div>
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          marginTop: "10px",
+        }}
+      >
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "12px",
+            padding: "20px",
+            width: "320px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "15px",
+          }}
+        >
+          {/* Title */}
+          <div>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#888",
+                marginBottom: "5px",
+              }}
+            >
+              Staking Multiplier
+            </p>
 
-    <input
-      type="number"
-      value={multiplier}
-      onChange={(e) => setMultiplier(e.target.value)}
-      style={{
-        marginTop: "10px",
-        padding: "10px",
-        width: "100%",
-      }}
-    />
+            <h3
+              style={{
+                fontSize: "28px",
+                fontWeight: "600",
+                color: "#222",
+              }}
+            >
+              {multiplier}
+            </h3>
+          </div>
 
-    <button
-      onClick={updateMultiplier}
-      style={{
-        marginTop: "10px",
-        padding: "10px",
-        width: "100%",
-        background: "#333",
-        color: "#fff",
-        border: "none",
-        cursor: "pointer",
-      }}
-    >
-      Update Multiplier
-    </button>
-  </div>
-</div>
+          {/* Input */}
+          <input
+            type="number"
+            step="0.001"
+            value={multiplier}
+            onChange={(e) => setMultiplier(e.target.value)}
+            style={{
+              padding: "12px",
+              borderRadius: "8px",
+              border: "1px solid #ddd",
+              fontSize: "14px",
+              outline: "none",
+              transition: "0.2s",
+            }}
+          />
+
+          {/* Button */}
+          <button
+            onClick={updateMultiplier}
+            style={{
+              padding: "12px",
+              borderRadius: "8px",
+              border: "none",
+              background: "linear-gradient(135deg, #4facfe, #00f2fe)",
+              color: "#fff",
+              fontWeight: "600",
+              fontSize: "14px",
+              cursor: "pointer",
+              transition: "0.2s",
+            }}
+          >
+            Update Multiplier
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
