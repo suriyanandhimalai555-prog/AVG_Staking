@@ -14,28 +14,26 @@ const Referral = () => {
 
   const [loading, setLoading] = useState(true);
 
-  const formatDateTime = (value) => {
+const formatDateTime = (value) => {
   if (!value) return "-";
 
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return "-";
+  // 🔥 DO NOT use new Date() directly
+  const raw = String(value);
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+  // Expected format: "YYYY-MM-DD HH:mm:ss"
+  const [datePart, timePart] = raw.split(" ");
 
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
+  if (!datePart || !timePart) return raw;
 
-  const ampm = hours >= 12 ? "PM" : "AM";
+  const [year, month, day] = datePart.split("-");
+  let [hour, minute, second] = timePart.split(":");
 
-  hours = hours % 12;
-  hours = hours ? hours : 12;
+  hour = Number(hour);
 
-  const formattedHours = String(hours).padStart(2, "0");
+  const ampm = hour >= 12 ? "pm" : "am";
+  hour = hour % 12 || 12;
 
-  return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
+  return `${day}/${month}/${year}, ${hour}:${minute}:${second} ${ampm}`;
 };
 
   useEffect(() => {

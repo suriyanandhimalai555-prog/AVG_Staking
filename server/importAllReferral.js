@@ -74,7 +74,7 @@ const importReferrals = async () => {
     console.log("🚀 Importing referrals...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./referral2.xlsx");
+    const workbook = xlsx.readFile("./referral.xlsx");
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 

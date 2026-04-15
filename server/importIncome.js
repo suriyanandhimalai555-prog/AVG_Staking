@@ -122,7 +122,7 @@ const importLevelIncome = async () => {
     console.log("🚀 Importing income...");
     await client.query("BEGIN");
 
-    const workbook = xlsx.readFile("./levelIncomenew.xlsx");
+    const workbook = xlsx.readFile("./income-till15.xlsx");
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 

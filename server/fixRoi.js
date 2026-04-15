@@ -16,10 +16,10 @@ const fixROI = async () => {
   try {
     await client.query("BEGIN");
 
-    const userCode = "AVG37301";
+    const userCode = "AVG60570";
 
     // 🎯 TARGETS (latest → oldest)
-    const targets = [21, 37.5, 52.5, 117, 20];
+    const targets = [0.5, 17];
 
     // 1. Get user
     const userRes = await client.query(
