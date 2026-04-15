@@ -26,7 +26,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     localStorage.removeItem("user");
 
     // redirect to login
-    navigate("/login");
+    navigate("/");
   };
 
   const toggleMenu = (menu) => {
