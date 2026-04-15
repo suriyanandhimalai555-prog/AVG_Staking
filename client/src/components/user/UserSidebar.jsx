@@ -10,12 +10,24 @@ import {
   FaMoneyBillWave,
   FaTrophy
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 import Logo from "../../assets/logo.png";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const location = useLocation();
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // clear auth data (adjust based on your app)
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // redirect to login
+    navigate("/login");
+  };
 
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -196,6 +208,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <SubItem label="My Profile" to="/user-profile" />
           <SubItem label="Support Ticket" to="/user-support" />
           <SubItem label="Bank" to="/user-bank" />
+        </div>
+
+        <div className="us-mobile-top">
+          <button className="us-logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </div>
     </>

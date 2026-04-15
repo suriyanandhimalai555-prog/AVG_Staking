@@ -10806,6 +10806,30 @@ td {
   color: white;
 }
 
+.us-mobile-top {
+  display: none;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.us-logout-btn {
+  width: 100%;
+  padding: 10px;
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* SHOW ONLY IN MOBILE */
+@media (max-width: 768px) {
+  .us-mobile-top {
+    display: block;
+  }
+}
+
 /* ======= user dashboard ====== */
 /* Layout */
 .dashboard {
