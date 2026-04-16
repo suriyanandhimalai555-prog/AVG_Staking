@@ -1085,3 +1085,41 @@ export const updateStakingMultiplier = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getStakingDivisor = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT value FROM system_settings WHERE key = 'staking_divisor'`
+    );
+
+    res.json({
+      divisor: Number(result.rows[0]?.value || 7),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateStakingDivisor = async (req, res) => {
+  try {
+    const { divisor } = req.body;
+
+    if (!divisor || isNaN(divisor) || Number(divisor) <= 0) {
+      return res.status(400).json({ message: "Invalid divisor" });
+    }
+
+    await pool.query(
+      `
+      INSERT INTO system_settings (key, value)
+      VALUES ('staking_divisor', $1)
+      ON CONFLICT (key)
+      DO UPDATE SET value = EXCLUDED.value
+      `,
+      [Number(divisor)]
+    );
+
+    res.json({ message: "Divisor updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

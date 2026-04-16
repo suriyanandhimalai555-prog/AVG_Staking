@@ -16,50 +16,39 @@ import toast from "react-hot-toast";
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
-  const [multiplier, setMultiplier] = useState("");
+  const [divisor, setDivisor] = useState("");
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const token = localStorage.getItem("token");
+useEffect(() => {
+  const fetchDashboard = async () => {
+    const token = localStorage.getItem("token");
 
-        const [dashboardRes, multRes] = await Promise.all([
-          axios.get(
-            `${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/dashboard`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ),
-          axios.get(
-            `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ),
-        ]);
+    const [dashboardRes, divRes] = await Promise.all([
+      axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-divisor`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
 
-        setData(dashboardRes.data);
-        setMultiplier(multRes.data.multiplier);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchDashboard();
-  }, []);
-
-  const updateMultiplier = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-multiplier`,
-        { multiplier },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      toast.success("Multiplier updated successfully");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to update multiplier");
-    }
+    setData(dashboardRes.data);
+    setDivisor(divRes.data.divisor);
   };
+
+  fetchDashboard();
+}, []);
+
+const updateDivisor = async () => {
+  const token = localStorage.getItem("token");
+
+  await axios.post(
+    `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-divisor`,
+    { divisor },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  toast.success("Divisor updated successfully");
+};
 
   if (!data) return <div className="dash-loading">Loading...</div>;
 
@@ -143,7 +132,7 @@ const Dashboard = () => {
                 marginBottom: "5px",
               }}
             >
-              Staking Multiplier
+              Staking Divisor
             </p>
 
             <h3
@@ -153,7 +142,7 @@ const Dashboard = () => {
                 color: "#ffffff",
               }}
             >
-              {multiplier}
+              {divisor}
             </h3>
           </div>
 
@@ -161,8 +150,8 @@ const Dashboard = () => {
           <input
             type="number"
             step="0.001"
-            value={multiplier}
-            onChange={(e) => setMultiplier(e.target.value)}
+            value={divisor}
+            onChange={(e) => setDivisor(e.target.value)}
             style={{
               padding: "12px",
               borderRadius: "10px",
@@ -176,7 +165,7 @@ const Dashboard = () => {
 
           {/* Button */}
           <button
-            onClick={updateMultiplier}
+            onClick={updateDivisor}
             style={{
               padding: "12px",
               borderRadius: "10px",

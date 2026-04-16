@@ -196,12 +196,14 @@ export const buyPlan = async (req, res) => {
       return res.status(404).json({ message: "Plan not found" });
     }
 
-    // ✅ GET MULTIPLIER FROM DB
-    const multiplierRes = await pool.query(
-      `SELECT value FROM system_settings WHERE key = 'staking_multiplier'`
+    const divisorRes = await pool.query(
+      `SELECT value FROM system_settings WHERE key = 'staking_divisor'`
     );
 
-    const multiplier = Number(multiplierRes.rows[0]?.value || 1.667);
+    const divisor = Number(divisorRes.rows[0]?.value || 7);
+
+    // ✅ FINAL CALCULATION
+    const stakingValue = Number((numericAmount / divisor).toFixed(2));
 
     // ✅ ROI CALCULATION (based on ORIGINAL amount only)
     const roiPercent = parseFloat(
@@ -212,13 +214,21 @@ export const buyPlan = async (req, res) => {
 
     await pool.query("BEGIN");
 
-    // ✅ SAVE MULTIPLIER WITH DEPOSIT
+    // ✅ SAVE DIVISOR WITH DEPOSIT
     const result = await pool.query(
       `INSERT INTO user_plans
-        (user_id, plan_id, amount, staking_multiplier, daily_roi, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, 'pending', NOW())
-       RETURNING *`,
-      [userId, planId, numericAmount, multiplier, dailyROI]
+    (user_id, plan_id, amount, staking_multiplier, daily_roi, status, created_at)
+   VALUES ($1, $2, $3, $4, $5, 'pending', NOW())
+   RETURNING *`,
+      [
+        userId,
+        planId,
+        numericAmount,
+
+        stakingValue,   // ✅ store divided value here
+
+        dailyROI
+      ]
     );
 
     await pool.query("COMMIT");
@@ -479,21 +489,21 @@ export const approveUserPlanRequest = async (req, res) => {
     const directParentId = await resolveUserId(directParentCode);
 
     if (directParentId) {
-  await insertEarning({
-    client,
-    receiverUserId: directParentId,
-    receiverUserCode: directParentCode,
-    fromUserId: userId,
-    fromUserCode: currentUserCode,
-    sourceUserPlanId: request.id,
-    amount: numericAmount * 0.05,
-    percentage: 5,
-    level: 0,
-    incomeType: "direct",
-  });
-} else {
-  console.log("⚠️ No referrer, skipping direct income");
-}
+      await insertEarning({
+        client,
+        receiverUserId: directParentId,
+        receiverUserCode: directParentCode,
+        fromUserId: userId,
+        fromUserCode: currentUserCode,
+        sourceUserPlanId: request.id,
+        amount: numericAmount * 0.05,
+        percentage: 5,
+        level: 0,
+        incomeType: "direct",
+      });
+    } else {
+      console.log("⚠️ No referrer, skipping direct income");
+    }
 
     await creditLevelIncome({
       client, // make creditLevelIncome accept client too
