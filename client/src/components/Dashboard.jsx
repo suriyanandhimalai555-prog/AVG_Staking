@@ -178,7 +178,7 @@ const updateDivisor = async () => {
               transition: "0.2s",
             }}
           >
-            Update Multiplier
+            Update Divisor
           </button>
         </div>
       </div>

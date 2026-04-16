@@ -102,6 +102,9 @@ router.get("/my-team-business", verifyToken, getMyTeamBusiness);
 router.get("/staking-multiplier", getStakingMultiplier);
 router.post("/staking-multiplier", updateStakingMultiplier);
 
+router.get("/staking-divisor", verifyToken, isAdmin, getStakingDivisor);
+router.post("/staking-divisor", verifyToken, isAdmin, updateStakingDivisor);
+
 // ✅ 3. ADMIN ACTIONS (dynamic routes LAST)
 router.put("/:id/status", verifyToken, isAdmin, updateUserStatus);
 router.put("/:id", verifyToken, isAdmin, updateUser);
