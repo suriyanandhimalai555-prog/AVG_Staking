@@ -219,12 +219,11 @@ const syncUnlockedLevels = async (client, receiverUserId) => {
 };
 
 export const creditLevelIncome = async ({
+  client, // ✅ receive client
   buyerId,
   planAmount,
   userPlanId,
 }) => {
-  const client = await pool.connect();
-
   try {
     const amount = Number(planAmount);
 
@@ -232,14 +231,9 @@ export const creditLevelIncome = async ({
       throw new Error("Invalid data");
     }
 
-    await client.query("BEGIN");
-
     const levelConfigs = await getActiveLevelConfigs(client);
 
-    if (!levelConfigs.length) {
-      await client.query("COMMIT");
-      return;
-    }
+    if (!levelConfigs.length) return;
 
     // 🔥 BUILD UPLINE CHAIN
     const uplineChain = [];
@@ -264,7 +258,6 @@ export const creditLevelIncome = async ({
 
       let payableAmount = amount;
 
-      // 🔒 LEVEL UNLOCK LOGIC
       if (level > 1) {
         const required = await getLevelUnlockRequirement(client, level);
         if (!required) continue;
@@ -294,7 +287,6 @@ export const creditLevelIncome = async ({
 
       let remainingAmount = payableAmount;
 
-      // 🔥 GET ALL ACTIVE PLANS (OLDEST FIRST)
       const plansRes = await client.query(
         `
         SELECT 
@@ -322,28 +314,23 @@ export const creditLevelIncome = async ({
         [receiverId]
       );
 
-      // 🔥 DISTRIBUTE INCOME PLAN BY PLAN
       for (const plan of plansRes.rows) {
         if (remainingAmount <= 0) break;
 
         const deposit = Number(plan.amount || 0);
-
         const multiplier = Number(
           (String(plan.ceiling_limit || "2").match(/[\d.]+/) || [2])[0]
         );
 
         const maxReturn = deposit * multiplier;
-
         const used =
           Number(plan.roi_income || 0) +
           Number(plan.referral_income || 0);
 
         const capacity = Math.max(0, maxReturn - used);
-
         if (capacity <= 0) continue;
 
         const allocatable = Math.min(capacity, remainingAmount);
-
         const percentage = Number(config.percentage);
 
         const incomeAmount = Number(
@@ -355,8 +342,8 @@ export const creditLevelIncome = async ({
         await client.query(
           `
           INSERT INTO level_income
-            (user_id, from_user_id, user_plan_id, credited_user_plan_id, level, amount, percentage, income_type, created_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, 'level', NOW())
+          (user_id, from_user_id, user_plan_id, credited_user_plan_id, level, amount, percentage, income_type, created_at)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,'level',NOW())
           `,
           [
             receiverId,
@@ -373,46 +360,9 @@ export const creditLevelIncome = async ({
       }
     }
 
-    // 🔥 UPDATE LEVEL UNLOCKS
-    for (let i = 0; i < uplineChain.length; i++) {
-      const receiverId = uplineChain[i];
-      const level = i + 1;
-
-      if (level <= 1) continue;
-
-      const required = await getLevelUnlockRequirement(client, level);
-      if (!required) continue;
-
-      const qualifyingRootId = uplineChain[i - 1];
-      if (!qualifyingRootId) continue;
-
-      const depthToCheck = Math.max(1, level - 1);
-
-      const businessTotal = await getExactDepthBusinessTotal(
-        client,
-        qualifyingRootId,
-        depthToCheck
-      );
-
-      if (businessTotal >= required) {
-        await client.query(
-          `
-          INSERT INTO user_level_unlocks (user_id, level, unlocked_at)
-          VALUES ($1, $2, NOW())
-          ON CONFLICT (user_id, level) DO NOTHING
-          `,
-          [receiverId, level]
-        );
-      }
-    }
-
-    await client.query("COMMIT");
   } catch (err) {
-    await client.query("ROLLBACK");
     console.error("LEVEL INCOME ERROR:", err);
     throw err;
-  } finally {
-    client.release();
   }
 };
 
