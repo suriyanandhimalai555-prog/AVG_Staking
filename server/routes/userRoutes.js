@@ -32,6 +32,8 @@ import {
   getMyTeamBusiness,
   getStakingMultiplier,
   updateStakingMultiplier,
+  getStakingDivisor,
+  updateStakingDivisor,
 } from "../controllers/userController.js";
 import { verifyToken, isAdmin } from "../middleware/authMiddleware.js";
 
