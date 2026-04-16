@@ -80,6 +80,7 @@ const getCreditedPlanId = async (receiverUserId) => {
 };
 
 const insertEarning = async ({
+  client = pool,
   receiverUserId,
   receiverUserCode,
   fromUserId,
@@ -93,7 +94,7 @@ const insertEarning = async ({
   let remainingAmount = Number(amount || 0);
   if (remainingAmount <= 0) return;
 
-  const plansRes = await pool.query(
+  const plansRes = await client.query(
     `
     SELECT 
       up.id,
@@ -133,37 +134,37 @@ const insertEarning = async ({
 
     const toInsert = Math.min(capacity, remainingAmount);
 
-    await pool.query(
-  `
-  INSERT INTO level_income
-  (
-    user_id,
-    from_user_id,
-    to_user_code,
-    from_user_code,
-    user_plan_id,
-    credited_user_plan_id,
-    level,
-    amount,
-    percentage,
-    income_type,
-    created_at
-  )
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-  `,
-  [
-    receiverUserId,
-    fromUserId,
-    receiverUserCode,
-    fromUserCode,
-    sourceUserPlanId,
-    plan.id,
-    level,
-    toInsert,
-    percentage,
-    incomeType,
-  ]
-);
+    await client.query(
+      `
+      INSERT INTO level_income
+      (
+        user_id,
+        from_user_id,
+        to_user_code,
+        from_user_code,
+        user_plan_id,
+        credited_user_plan_id,
+        level,
+        amount,
+        percentage,
+        income_type,
+        created_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+      `,
+      [
+        receiverUserId,
+        fromUserId,
+        receiverUserCode,
+        fromUserCode,
+        sourceUserPlanId,
+        plan.id,
+        level,
+        toInsert,
+        percentage,
+        incomeType,
+      ]
+    );
 
     remainingAmount -= toInsert;
   }
@@ -422,100 +423,98 @@ export const getPendingUserPlanRequests = async (req, res) => {
 
 /* APPROVE PLAN REQUEST */
 export const approveUserPlanRequest = async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const { id } = req.params;
+    await client.query("BEGIN");
 
-    await pool.query("BEGIN");
-
-    const requestRes = await pool.query(
-  `
-  SELECT up.*
-  FROM user_plans up
-  WHERE up.id = $1
-  FOR UPDATE
-  `,
-  [id]
-);
+    const requestRes = await client.query(
+      `
+      SELECT up.*
+      FROM user_plans up
+      WHERE up.id = $1
+      FOR UPDATE
+      `,
+      [id]
+    );
 
     const request = requestRes.rows[0];
 
     if (!request) {
-      await pool.query("ROLLBACK");
+      await client.query("ROLLBACK");
       return res.status(404).json({ message: "Request not found" });
     }
 
     if (String(request.status).toLowerCase() !== "pending") {
-      await pool.query("ROLLBACK");
+      await client.query("ROLLBACK");
       return res.status(400).json({ message: "Request is not pending" });
     }
 
-    const updateRes = await pool.query(
-      `UPDATE user_plans
-       SET status = 'active'
-       WHERE id = $1 AND status = 'pending'
-       RETURNING *`,
+    const updateRes = await client.query(
+      `
+      UPDATE user_plans
+      SET status = 'active'
+      WHERE id = $1 AND status = 'pending'
+      RETURNING *
+      `,
       [id]
     );
 
     if (!updateRes.rows.length) {
-      await pool.query("ROLLBACK");
+      await client.query("ROLLBACK");
       return res.status(400).json({ message: "Request could not be approved" });
     }
 
     const userId = request.user_id;
     const numericAmount = Number(request.amount || 0);
 
-    const currentUserCode = await getUserCode(userId);
-
-    const userRes = await pool.query(
-      "SELECT referred_by FROM users WHERE id = $1",
+    const currentUserCodeRes = await client.query(
+      "SELECT user_code, referred_by FROM users WHERE id = $1",
       [userId]
     );
 
-    const directParentCode = userRes.rows[0]?.referred_by;
+    const currentUserCode = currentUserCodeRes.rows[0]?.user_code;
+    const directParentCode = currentUserCodeRes.rows[0]?.referred_by || null;
     const directParentId = await resolveUserId(directParentCode);
 
-    try {
-  if (directParentId) {
-    await insertEarning({
-      receiverUserId: directParentId,
-      receiverUserCode: directParentCode,
-      fromUserId: userId,
-      fromUserCode: currentUserCode,
-      sourceUserPlanId: request.id,
-      amount: numericAmount * 0.05,
-      percentage: 5,
-      level: 0,
-      incomeType: "direct",
-    });
-  }
+    if (directParentId) {
+      await insertEarning({
+        client,
+        receiverUserId: directParentId,
+        receiverUserCode: directParentCode,
+        fromUserId: userId,
+        fromUserCode: currentUserCode,
+        sourceUserPlanId: request.id,
+        amount: numericAmount * 0.05,
+        percentage: 5,
+        level: 0,
+        incomeType: "direct",
+      });
+    } else {
+      throw new Error(`No referrer found for user_id=${userId}`);
+    }
 
-  // 🔥 SAFE LEVEL INCOME
-  try {
     await creditLevelIncome({
+      client, // make creditLevelIncome accept client too
       buyerId: userId,
       planAmount: numericAmount,
       userPlanId: request.id,
       creditedUserPlanId: request.id,
     });
-  } catch (err) {
-    console.log("Level income skipped:", err.message);
-  }
 
-} catch (err) {
-  console.log("Referral skipped:", err.message);
-}
-
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
 
     res.json({
       message: "Request approved successfully",
       plan: updateRes.rows[0],
     });
   } catch (err) {
-    await pool.query("ROLLBACK");
+    await client.query("ROLLBACK");
     console.error("approveUserPlanRequest error:", err);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 };
 
