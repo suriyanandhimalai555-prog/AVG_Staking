@@ -8,7 +8,7 @@ import FAQ from "../components/Faq";
 
 function Home() {
   return (
-    <>
+    <> 
       <section id="home">
         <Hero />
       </section>

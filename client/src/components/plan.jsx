@@ -12,7 +12,7 @@ const Plan = () => {
 
         <p className="plan-subtitle">
           A professionally structured staking plan designed for consistent
-          daily returns with defined risk control.
+          daily returns with defined risk control. 
         </p>
 
         <div className="plan-content">
