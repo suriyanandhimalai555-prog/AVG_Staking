@@ -732,16 +732,14 @@ export const getMyDepositStats = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       SELECT 
         COUNT(*) AS total_count,
 
-        -- normal deposit
         COALESCE(SUM(amount),0) AS total_amount,
 
-        -- ✅ correct staking (THIS IS YOUR FIX)
-        COALESCE(SUM(amount * COALESCE(staking_multiplier, 1.667)), 0) AS total_staking,
+        -- ✅ FIXED (ONLY SUM staking value)
+        COALESCE(SUM(staking_multiplier), 0) AS total_staking,
 
         COUNT(*) FILTER (
           WHERE DATE(created_at) = CURRENT_DATE
@@ -753,14 +751,12 @@ export const getMyDepositStats = async (req, res) => {
 
       FROM user_plans
       WHERE user_id = $1
-      `,
-      [userId]
-    );
+    `, [userId]);
 
     res.json({
       total_count: Number(result.rows[0].total_count),
       total_amount: Number(result.rows[0].total_amount),
-      total_staking: Number(result.rows[0].total_staking), // ✅ IMPORTANT
+      total_staking: Number(result.rows[0].total_staking), // ✅ correct now
       today_count: Number(result.rows[0].today_count),
       today_amount: Number(result.rows[0].today_amount),
     });
