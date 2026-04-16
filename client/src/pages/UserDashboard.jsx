@@ -201,7 +201,7 @@ const UserDashboard = () => {
           <div className="grid grid-4">
             <StatCard
               title="Total AVG Staking Balance"
-              value={`$${Number(stats.staking).toFixed(2)}`}
+              value={`${Number(stats.staking).toFixed(2)}`}
               icon={<FaMoneyBill />}
             />
             <StatCard title="ROI Income" value={`$${earnings.roi}`} icon={<FaChartLine />} />
