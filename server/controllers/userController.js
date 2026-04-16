@@ -735,20 +735,27 @@ export const getMyDepositStats = async (req, res) => {
     const result = await pool.query(
       `
       SELECT 
-        COUNT(*) AS total_count,
-        COALESCE(SUM(amount), 0) AS total_amount,
+  COUNT(*) AS total_count,
+  COALESCE(SUM(amount), 0) AS total_amount,
 
-        COALESCE(SUM(
-          CASE
-            WHEN staking_return IS NOT NULL THEN staking_return
-            ELSE amount * COALESCE(staking_multiplier, 1.667)
-          END
-        ), 0) AS total_staking,
+  COALESCE(SUM(
+    CASE
+      -- ✅ NEW DATA (DIVISION)
+      WHEN staking_return IS NOT NULL THEN staking_return
 
-        COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) AS today_count,
-        COALESCE(SUM(amount) FILTER (WHERE DATE(created_at) = CURRENT_DATE), 0) AS today_amount
-      FROM user_plans
-      WHERE user_id = $1
+      -- ✅ OLD DATA (MULTIPLIER)
+      ELSE amount * COALESCE(staking_multiplier, 1.667)
+    END
+  ), 0) AS total_staking,
+
+  COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) AS today_count,
+
+  COALESCE(SUM(amount) FILTER (
+    WHERE DATE(created_at) = CURRENT_DATE
+  ), 0) AS today_amount
+
+FROM user_plans
+WHERE user_id = $1;
       `,
       [userId]
     );
