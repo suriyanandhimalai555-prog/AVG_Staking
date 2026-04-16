@@ -113,7 +113,7 @@ const Users = () => {
                     username: u.name,
                     userCode: u.user_code,
                     email: u.email,
-                    active: true,
+                    // active: true,
                     phone: u.phone || "-",
                     wallet: "-",
                     created: formatDateTime(u.created_at),
