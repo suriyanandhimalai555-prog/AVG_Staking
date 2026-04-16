@@ -479,21 +479,21 @@ export const approveUserPlanRequest = async (req, res) => {
     const directParentId = await resolveUserId(directParentCode);
 
     if (directParentId) {
-      await insertEarning({
-        client,
-        receiverUserId: directParentId,
-        receiverUserCode: directParentCode,
-        fromUserId: userId,
-        fromUserCode: currentUserCode,
-        sourceUserPlanId: request.id,
-        amount: numericAmount * 0.05,
-        percentage: 5,
-        level: 0,
-        incomeType: "direct",
-      });
-    } else {
-      throw new Error(`No referrer found for user_id=${userId}`);
-    }
+  await insertEarning({
+    client,
+    receiverUserId: directParentId,
+    receiverUserCode: directParentCode,
+    fromUserId: userId,
+    fromUserCode: currentUserCode,
+    sourceUserPlanId: request.id,
+    amount: numericAmount * 0.05,
+    percentage: 5,
+    level: 0,
+    incomeType: "direct",
+  });
+} else {
+  console.log("⚠️ No referrer, skipping direct income");
+}
 
     await creditLevelIncome({
       client, // make creditLevelIncome accept client too
