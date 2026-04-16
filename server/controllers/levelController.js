@@ -219,7 +219,7 @@ const syncUnlockedLevels = async (client, receiverUserId) => {
 };
 
 export const creditLevelIncome = async ({
-  client, // ✅ receive client
+  client,
   buyerId,
   planAmount,
   userPlanId,
@@ -232,10 +232,9 @@ export const creditLevelIncome = async ({
     }
 
     const levelConfigs = await getActiveLevelConfigs(client);
-
     if (!levelConfigs.length) return;
 
-    // 🔥 BUILD UPLINE CHAIN
+    // Build upline chain: buyer -> parent -> grandparent -> ...
     const uplineChain = [];
     let current = buyerId;
 
@@ -248,7 +247,7 @@ export const creditLevelIncome = async ({
       current = parentId;
     }
 
-    // 🔥 PROCESS EACH LEVEL
+    // Process each upline level
     for (let i = 0; i < uplineChain.length; i++) {
       const receiverId = uplineChain[i];
       const level = i + 1;
@@ -258,6 +257,7 @@ export const creditLevelIncome = async ({
 
       let payableAmount = amount;
 
+      // Level unlock logic for level 2+
       if (level > 1) {
         const required = await getLevelUnlockRequirement(client, level);
         if (!required) continue;
@@ -285,8 +285,18 @@ export const creditLevelIncome = async ({
 
       if (payableAmount <= 0) continue;
 
-      let remainingAmount = payableAmount;
+      // ✅ IMPORTANT:
+      // Calculate the actual level payout from the full eligible amount first.
+      const totalIncome = Number(
+        ((payableAmount * Number(config.percentage)) / 100).toFixed(2)
+      );
 
+      if (totalIncome <= 0) continue;
+
+      let remainingIncome = totalIncome;
+
+      // Distribute this income across the receiver's active plans, oldest first,
+      // while respecting plan ceiling limits.
       const plansRes = await client.query(
         `
         SELECT 
@@ -309,13 +319,13 @@ export const creditLevelIncome = async ({
         ) i ON i.credited_user_plan_id = up.id
         WHERE up.user_id = $1
           AND up.status = 'active'
-        ORDER BY up.created_at ASC
+        ORDER BY up.created_at ASC, up.id ASC
         `,
         [receiverId]
       );
 
       for (const plan of plansRes.rows) {
-        if (remainingAmount <= 0) break;
+        if (remainingIncome <= 0) break;
 
         const deposit = Number(plan.amount || 0);
         const multiplier = Number(
@@ -330,14 +340,8 @@ export const creditLevelIncome = async ({
         const capacity = Math.max(0, maxReturn - used);
         if (capacity <= 0) continue;
 
-        const allocatable = Math.min(capacity, remainingAmount);
-        const percentage = Number(config.percentage);
-
-        const incomeAmount = Number(
-          ((allocatable * percentage) / 100).toFixed(2)
-        );
-
-        if (incomeAmount <= 0) continue;
+        const toInsert = Math.min(capacity, remainingIncome);
+        if (toInsert <= 0) continue;
 
         await client.query(
           `
@@ -351,12 +355,12 @@ export const creditLevelIncome = async ({
             userPlanId,
             plan.id,
             level,
-            incomeAmount,
-            percentage,
+            Number(toInsert.toFixed(2)),
+            Number(config.percentage),
           ]
         );
 
-        remainingAmount -= allocatable;
+        remainingIncome = Number((remainingIncome - toInsert).toFixed(2));
       }
     }
 
