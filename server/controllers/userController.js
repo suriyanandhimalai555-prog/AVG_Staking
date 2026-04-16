@@ -5,11 +5,31 @@ import bcrypt from "bcrypt";
 /* GET ALL USERS (admin) */
 export const getAllUsers = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, user_code, name, email, phone, created_at, role, status 
-       FROM users 
-       ORDER BY id DESC`
-    );
+    const result = await pool.query(`
+      SELECT
+        u.id,
+        u.user_code,
+        u.name,
+        u.email,
+        u.phone,
+        u.created_at,
+        u.role,
+        u.status AS login_status,
+
+        CASE
+          WHEN COUNT(up.id) > 0 THEN true
+          ELSE false
+        END AS has_active_plan
+
+      FROM users u
+      LEFT JOIN user_plans up
+        ON up.user_id = u.id
+        AND up.status = 'active'
+
+      GROUP BY u.id
+      ORDER BY u.id DESC
+    `);
+
     res.json(result.rows);
   } catch (error) {
     console.error("getAllUsers error:", error);
