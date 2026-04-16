@@ -117,8 +117,7 @@ const Users = () => {
                     phone: u.phone || "-",
                     wallet: "-",
                     created: formatDateTime(u.created_at),
-                    status: u.login_status ?? false,        // login permission
-                    active: u.has_active_plan ?? false, 
+                    status: u.status ?? false,
                 }));
 
                 setUsers(formatted);
@@ -284,21 +283,21 @@ const Users = () => {
                                 </td>
                                 <td>{user.email}</td>
                                 <td>
-                                <span className={user.active ? "badge-active" : "badge-inactive"}>
-                                    {user.active ? "Active" : "Inactive"}
-                                </span>
+                                    <span className={user.status ? "badge-active" : "badge-inactive"}>
+                                        {user.status ? "Active" : "Inactive"}
+                                    </span>
                                 </td>
                                 <td>{user.phone}</td>
                                 <td>{user.wallet}</td>
                                 <td>
-                                <label className="switch">
-                                    <input
-                                    type="checkbox"
-                                    checked={user.status}
-                                    onChange={() => toggleStatus(user.id)}
-                                    />
-                                    <span className="slider"></span>
-                                </label>
+                                    <label className="switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={user.status}
+                                            onChange={() => toggleStatus(user.id)}
+                                        />
+                                        <span className="slider"></span>
+                                    </label>
                                 </td>
                                 <td>{user.created}</td>
                                 <td className="action-cell">
