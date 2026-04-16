@@ -172,6 +172,8 @@ const insertEarning = async ({
 
 /* BUY PLAN */
 export const buyPlan = async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const userId = req.user.id;
     const { planId, amount } = req.body;
@@ -185,62 +187,66 @@ export const buyPlan = async (req, res) => {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
-    // ✅ GET PLAN
-    const planRes = await pool.query(
+    await client.query("BEGIN");
+
+    const planRes = await client.query(
       "SELECT * FROM plans WHERE id = $1",
       [planId]
     );
 
     const plan = planRes.rows[0];
     if (!plan) {
+      await client.query("ROLLBACK");
       return res.status(404).json({ message: "Plan not found" });
     }
 
-    const divisorRes = await pool.query(
+    // Old multiplier kept only for legacy rows / reference
+    const multiplierRes = await client.query(
+      `SELECT value FROM system_settings WHERE key = 'staking_multiplier'`
+    );
+    const legacyMultiplier = Number(multiplierRes.rows[0]?.value || 1.667);
+
+    // New admin setting for future deposits
+    const divisorRes = await client.query(
       `SELECT value FROM system_settings WHERE key = 'staking_divisor'`
     );
-
     const divisor = Number(divisorRes.rows[0]?.value || 7);
 
-    // ✅ FINAL CALCULATION
-    const stakingValue = Number((numericAmount / divisor).toFixed(2));
+    const stakingReturn = Number((numericAmount / divisor).toFixed(2));
 
-    // ✅ ROI CALCULATION (based on ORIGINAL amount only)
     const roiPercent = parseFloat(
       String(plan.roi || "0").replace(/[^\d.]/g, "")
     );
-
     const dailyROI = (numericAmount * roiPercent) / 100;
 
-    await pool.query("BEGIN");
-
-    // ✅ SAVE DIVISOR WITH DEPOSIT
-    const result = await pool.query(
+    const result = await client.query(
       `INSERT INTO user_plans
-    (user_id, plan_id, amount, staking_multiplier, daily_roi, status, created_at)
-   VALUES ($1, $2, $3, $4, $5, 'pending', NOW())
-   RETURNING *`,
+        (user_id, plan_id, amount, staking_multiplier, staking_divisor, staking_return, daily_roi, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())
+       RETURNING *`,
       [
         userId,
         planId,
         numericAmount,
-
-        stakingValue,   // ✅ store divided value here
-
-        dailyROI
+        legacyMultiplier,
+        divisor,
+        stakingReturn,
+        dailyROI,
       ]
     );
 
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
 
     res.json({
       message: "Plan request submitted successfully",
       request: result.rows[0],
     });
   } catch (err) {
-    await pool.query("ROLLBACK");
+    await client.query("ROLLBACK");
     console.error("buyPlan error:", err);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 };
 
