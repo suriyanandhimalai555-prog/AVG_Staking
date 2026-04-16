@@ -735,27 +735,33 @@ export const getMyDepositStats = async (req, res) => {
     const result = await pool.query(
       `
       SELECT 
-  COUNT(*) AS total_count,
-  COALESCE(SUM(amount), 0) AS total_amount,
+        COUNT(*) AS total_count,
+        COALESCE(SUM(amount), 0) AS total_amount,
 
-  COALESCE(SUM(
-    CASE
-      -- ✅ NEW DATA (DIVISION)
-      WHEN staking_return IS NOT NULL THEN staking_return
+        -- ✅ FINAL CORRECT LOGIC
+        COALESCE(SUM(
+          CASE
+            -- 🔥 NEW DATA (DIVISION)
+            WHEN staking_return IS NOT NULL AND staking_return > 0 
+              THEN staking_return
 
-      -- ✅ OLD DATA (MULTIPLIER)
-      ELSE amount * COALESCE(staking_multiplier, 1.667)
-    END
-  ), 0) AS total_staking,
+            -- 🔥 OLD DATA (MULTIPLIER)
+            WHEN staking_multiplier IS NOT NULL 
+              THEN amount * staking_multiplier
 
-  COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) AS today_count,
+            -- 🔥 SAFETY FALLBACK
+            ELSE amount * 1.667
+          END
+        ), 0) AS total_staking,
 
-  COALESCE(SUM(amount) FILTER (
-    WHERE DATE(created_at) = CURRENT_DATE
-  ), 0) AS today_amount
+        COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) AS today_count,
 
-FROM user_plans
-WHERE user_id = $1;
+        COALESCE(SUM(amount) FILTER (
+          WHERE DATE(created_at) = CURRENT_DATE
+        ), 0) AS today_amount
+
+      FROM user_plans
+      WHERE user_id = $1
       `,
       [userId]
     );
@@ -767,6 +773,7 @@ WHERE user_id = $1;
       today_count: Number(result.rows[0].today_count),
       today_amount: Number(result.rows[0].today_amount),
     });
+
   } catch (err) {
     console.error("deposit stats error:", err);
     res.status(500).json({ error: err.message });
