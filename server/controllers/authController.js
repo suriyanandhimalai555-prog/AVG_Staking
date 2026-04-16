@@ -147,13 +147,13 @@ export const verifySignupOtp = async (req, res) => {
 
       // ✅ IMPORTANT INSERT (this was missing)
       await client.query(
-  `
+        `
   INSERT INTO referrals
   (referrer_user_id, referred_user_id, level, created_at)
   VALUES ($1, $2, 1, NOW())
   `,
-  [sponsor.id, user.id]
-);
+        [sponsor.id, user.id]
+      );
     }
 
     // 🧹 CLEANUP

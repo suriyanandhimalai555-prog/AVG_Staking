@@ -15,8 +15,8 @@ export const createUser = async (
 ) => {
   const query = `
   INSERT INTO users
-  (user_code, password, role, name, lastname, email, phone, referred_by, created_at)
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW())
+  (user_code, password, role, name, lastname, email, phone, referred_by, status, created_at)
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8, TRUE, NOW())
   RETURNING *;
 `;
 
