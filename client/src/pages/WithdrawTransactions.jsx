@@ -51,29 +51,39 @@ const WithdrawTransactions = () => {
       );
 
       const formatted = (res.data || []).map((d) => {
-  const amount = Number(d.amount || 0);
-  const fee = amount * 0.1;
-  const approvedUsd = Number(d.approved_amount ?? amount - fee);
-  const approvedInr = Number(
-    d.approved_amount ? d.approved_amount : approvedUsd * EXCHANGE_RATE
-  );
+        const amount = Number(d.amount || 0);
+        const fee = amount * 0.1;
+        const approvedUsd = Number(d.approved_amount ?? amount - fee);
+        const approvedInr = Number(
+          d.approved_amount ? d.approved_amount : approvedUsd * EXCHANGE_RATE
+        );
 
-  return {
-    id: d.id,
-    user: `${d.name || ""} ${d.lastname || ""} (${d.user_code || "-"})`.trim(),
-    wallet: d.wallet_type || "-",
-    amount,
-    amountDisplay: `$${amount.toFixed(2)}`,
-    fee: fee.toFixed(2),
-    approvedUsd: approvedUsd.toFixed(2),
-    approvedInr: approvedInr.toFixed(2),
-    transactionId: d.transaction_id || "",
-    currency: d.currency_type || "USD",
-    proof: d.proof || d.transaction_proof || d.tx_proof || "",
-    status: d.status || "PENDING",
-    created: formatDateTime(d.created_at),
-  };
-});
+        return {
+          id: d.id,
+          user: `${d.name || ""} ${d.lastname || ""} (${d.user_code || "-"})`.trim(),
+          wallet: d.wallet_type || "-",
+          amount,
+          amountDisplay: `$${amount.toFixed(2)}`,
+          fee: fee.toFixed(2),
+          approvedUsd: approvedUsd.toFixed(2),
+          approvedInr: approvedInr.toFixed(2),
+          transactionId: d.transaction_id || "",
+          currency: d.currency_type || "USD",
+          proof: d.proof || d.transaction_proof || d.tx_proof || "",
+          status: d.status || "PENDING",
+          created: formatDateTime(d.created_at),
+
+          bank: {
+            accountHolderName: d.account_holder_name || "-",
+            bankName: d.bank_name || "-",
+            accountNumber: d.account_number || "-",
+            ifscCode: d.ifsc_code || "-",
+            branch: d.branch || "-",
+            upiId: d.upi_id || "-",
+            gpayNumber: d.gpay_number || "-",
+          },
+        };
+      });
 
       setData(formatted);
     } catch (err) {
@@ -483,9 +493,20 @@ const WithdrawTransactions = () => {
               <p><b>Wallet:</b> {viewData.wallet}</p>
               <p><b>Amount:</b> {viewData.amountDisplay}</p>
               <p><b>Txn ID:</b> {viewData.transactionId || "-"}</p>
-              <p><b>Proof:</b> {viewData.proof}</p>
+              <p><b>Proof:</b> {viewData.proof || "-"}</p>
               <p><b>Status:</b> {viewData.status}</p>
               <p><b>Created:</b> {viewData.created}</p>
+
+              <hr style={{ margin: "16px 0" }} />
+
+              <h4 style={{ marginBottom: "10px" }}>Bank Details</h4>
+              <p><b>Account Holder:</b> {viewData.bank?.accountHolderName}</p>
+              <p><b>Bank Name:</b> {viewData.bank?.bankName}</p>
+              <p><b>Account Number:</b> {viewData.bank?.accountNumber}</p>
+              <p><b>IFSC Code:</b> {viewData.bank?.ifscCode}</p>
+              <p><b>Branch:</b> {viewData.bank?.branch}</p>
+              <p><b>UPI ID:</b> {viewData.bank?.upiId}</p>
+              <p><b>GPay Number:</b> {viewData.bank?.gpayNumber}</p>
             </div>
           </div>
         </div>
