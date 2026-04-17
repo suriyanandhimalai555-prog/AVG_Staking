@@ -434,11 +434,7 @@ const WithdrawTransactions = () => {
 
                   <div>
                     <span>Account Number</span>
-                    <b>
-                      {editData.bank?.accountNumber
-                        ? "****" + editData.bank.accountNumber.slice(-4)
-                        : "-"}
-                    </b>
+                    <b>{editData.bank?.accountNumber || "-"}</b>
                   </div>
 
                   <div>
