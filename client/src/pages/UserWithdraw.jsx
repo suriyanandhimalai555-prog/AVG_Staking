@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
 
@@ -17,6 +18,8 @@ const UserWithdraw = () => {
     usdtPrice: 0,
   });
 
+  const [bankData, setBankData] = useState(null);
+
   const [form, setForm] = useState({
     walletType: "",
     currencyType: "",
@@ -29,6 +32,7 @@ const UserWithdraw = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
 
   const formatDateTime = (value) => {
     if (!value) return "-";
@@ -54,6 +58,21 @@ const UserWithdraw = () => {
     return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
   };
 
+  const fetchBankDetails = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/users/my-bank`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setBankData(res.data || null);
+    } catch (err) {
+      setBankData(null);
+    }
+  };
+
   const fetchData = async () => {
     try {
       const [summaryRes, withdrawRes] = await Promise.all([
@@ -68,21 +87,21 @@ const UserWithdraw = () => {
       setWallets(summaryRes.data);
 
       const formatted = (withdrawRes.data || []).map((w) => {
-  const amount = Number(w.amount || 0);
-  const fee = amount * 0.1;
-  const approvedUsd = amount - fee;
+        const amount = Number(w.amount || 0);
+        const fee = amount * 0.1;
+        const approvedUsd = amount - fee;
 
-  return {
-    id: w.id,
-    currency: w.currency_type,
-    transactionId: w.transaction_id || "",
-    proof: w.transaction_proof || "",
-    request: `$${amount.toFixed(2)}`,
-    approved: `₹${Number(w.approved_amount ?? (approvedUsd * 95)).toFixed(2)}`,
-    status: w.status,
-    date: w.created_at,
-  };
-});
+        return {
+          id: w.id,
+          currency: w.currency_type,
+          transactionId: w.transaction_id || "",
+          proof: w.transaction_proof || "",
+          request: `$${amount.toFixed(2)}`,
+          approved: `₹${Number(w.approved_amount ?? approvedUsd * 95).toFixed(2)}`,
+          status: w.status,
+          date: w.created_at,
+        };
+      });
 
       setData(formatted);
     } catch (err) {
@@ -91,6 +110,7 @@ const UserWithdraw = () => {
   };
 
   useEffect(() => {
+    fetchBankDetails();
     fetchData();
   }, []);
 
@@ -159,7 +179,33 @@ const UserWithdraw = () => {
     return newErrors;
   };
 
+  const handleOpenWithdraw = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/users/my-bank`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!res.data) {
+        navigate("/user-bank");
+        return;
+      }
+
+      setBankData(res.data);
+      setShowModal(true);
+    } catch (err) {
+      navigate("/user-bank");
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!bankData) {
+      navigate("/user-bank");
+      return;
+    }
+
     const err = validate();
     if (Object.keys(err).length) return setErrors(err);
 
@@ -189,9 +235,7 @@ const UserWithdraw = () => {
         <div className="uwContent">
           <div className="uwHeader">
             <h2>Withdraw</h2>
-            <button onClick={() => setShowModal(true)}>
-              Create Withdraw
-            </button>
+            <button onClick={handleOpenWithdraw}>Create Withdraw</button>
           </div>
 
           <div className="uwSearch">
@@ -211,7 +255,6 @@ const UserWithdraw = () => {
                 <tr>
                   <th>S.NO</th>
                   <th>CURRENCY</th>
-                  {/* <th>TXN ID</th> */}
                   <th>PROOF</th>
                   <th>REQUEST</th>
                   <th>APPROVED</th>
@@ -230,7 +273,6 @@ const UserWithdraw = () => {
                     <tr key={item.id}>
                       <td>{(page - 1) * rowsPerPage + i + 1}</td>
                       <td>{item.currency}</td>
-                      {/* <td></td> */}
                       <td>
                         {item.proof !== "-" && item.proof}
                         {item.proof !== "-" && item.transactionId !== "-" && " | "}
@@ -308,10 +350,18 @@ const UserWithdraw = () => {
             </div>
 
             <div className="uw2Stats">
-              <div><p>ROI</p><h4>${wallets.roi}</h4></div>
-              <div><p>Level</p><h4>${wallets.level}</h4></div>
-              <div><p>Direct</p><h4>${wallets.direct}</h4></div>
-              {/* <div><p>Reward</p><h4>${wallets.reward}</h4></div> */}
+              <div>
+                <p>ROI</p>
+                <h4>${wallets.roi}</h4>
+              </div>
+              <div>
+                <p>Level</p>
+                <h4>${wallets.level}</h4>
+              </div>
+              <div>
+                <p>Direct</p>
+                <h4>${wallets.direct}</h4>
+              </div>
             </div>
 
             <div className="uw2Form">
@@ -326,10 +376,7 @@ const UserWithdraw = () => {
                   <option value="">Select Wallet</option>
                   <option value="roi">ROI (${wallets.roi})</option>
                   <option value="level">Level (${wallets.level})</option>
-                  <option value="direct">
-                    Direct (${wallets.direct})
-                  </option>
-                  {/* <option value="reward">Reward (${wallets.reward})</option> */}
+                  <option value="direct">Direct (${wallets.direct})</option>
                 </select>
                 <span className="error">{errors.walletType}</span>
               </div>
@@ -371,8 +418,12 @@ const UserWithdraw = () => {
             </div>
 
             <div className="uw2Footer">
-              <button className="uw2Cancel" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="uw2Submit" onClick={handleSubmit}>Create Withdraw</button>
+              <button className="uw2Cancel" onClick={() => setShowModal(false)}>
+                Cancel
+              </button>
+              <button className="uw2Submit" onClick={handleSubmit}>
+                Create Withdraw
+              </button>
             </div>
           </div>
         </div>
