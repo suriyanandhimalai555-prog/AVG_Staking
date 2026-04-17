@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
+import toast from "react-hot-toast";
 
 const UserWithdraw = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -189,6 +190,7 @@ const UserWithdraw = () => {
       );
 
       if (!res.data) {
+        toast.error("Please add your bank details first");
         navigate("/user-bank");
         return;
       }
@@ -196,6 +198,7 @@ const UserWithdraw = () => {
       setBankData(res.data);
       setShowModal(true);
     } catch (err) {
+      toast.error("Please add your bank details first");
       navigate("/user-bank");
     }
   };
@@ -215,6 +218,8 @@ const UserWithdraw = () => {
         form,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      toast.success("Withdraw request created");
 
       setShowModal(false);
       setForm({ walletType: "", currencyType: "", amount: "" });
