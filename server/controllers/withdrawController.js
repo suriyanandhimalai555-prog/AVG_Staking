@@ -232,14 +232,32 @@ export const getAllWithdrawals = async (req, res) => {
         w.*,
         u.name,
         u.lastname,
-        u.user_code
+        u.user_code,
+
+        b.account_holder_name,
+        b.bank_name,
+        b.account_number,
+        b.ifsc_code,
+        b.branch,
+        b.upi_id,
+        b.gpay_number
+
       FROM withdrawals w
-      JOIN users u ON u.id = w.user_id
+      JOIN users u 
+        ON u.id = w.user_id
+
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM bank_details bd
+        WHERE bd.user_id = w.user_id
+        ORDER BY bd.id DESC
+        LIMIT 1
+      ) b ON TRUE
+
       ORDER BY w.id DESC;
     `);
 
     res.json(result.rows);
-
   } catch (err) {
     console.error("getAllWithdrawals error:", err);
     res.status(500).json({ error: err.message });
