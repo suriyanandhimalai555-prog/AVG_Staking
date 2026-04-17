@@ -116,10 +116,10 @@ const Hero = ({ onLoginClick }) => {
             Today and Watch Your Crypto Grow.
           </p>
 
-          <button className="hero-btn" onClick={handleSignInClick}>
+          {/* <button className="hero-btn" onClick={handleSignInClick}>
             <span className="btn-text">Sign In</span>
             <span className="btn-icon">↗</span>
-          </button>
+          </button> */}
         </div>
 
         {/* RIGHT CONTENT */}
