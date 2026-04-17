@@ -762,7 +762,7 @@ export const getMyDepositStats = async (req, res) => {
 
       FROM user_plans
       WHERE user_id = $1
-      AND status = 'active'
+      AND status IN ('active', 'completed')
       `,
       [userId]
     );
