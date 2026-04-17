@@ -22,16 +22,18 @@ const Bank = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const formatted = res.data.map((b) => ({
-          id: b.id,
-          username: b.username || "-",
-          bank: b.bank_name || "-",
-          account: b.account_number || "-",
-          ifsc: b.ifsc_code || "-",
-          gpay: b.gpay_number || "-",
-          status: b.status || "Pending",
-          created: b.created_at ? new Date(b.created_at).toLocaleString() : "-",
-        }));
+        const formatted = res.data
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // 🔥 newest first
+          .map((b) => ({
+            id: b.id,
+            username: b.username || "-",
+            bank: b.bank_name || "-",
+            account: b.account_number || "-",
+            ifsc: b.ifsc_code || "-",
+            gpay: b.gpay_number || "-",
+            status: b.status || "Pending",
+            created: b.created_at ? new Date(b.created_at).toLocaleString() : "-",
+          }));
 
         setBanks(formatted);
       } catch (err) {
