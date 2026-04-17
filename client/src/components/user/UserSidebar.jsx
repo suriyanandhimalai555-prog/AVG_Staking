@@ -125,6 +125,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <h1>AVG</h1>
         </div>
 
+        <div className="us-mobile-top">
+          <button className="us-logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+
         {/* MAIN */}
         <p className="us-section">MAIN</p>
         <MenuItem icon={<FaTachometerAlt />} label="Dashboard" to="/user-dashboard" />
@@ -208,12 +214,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <SubItem label="My Profile" to="/user-profile" />
           <SubItem label="Support Ticket" to="/user-support" />
           <SubItem label="Bank" to="/user-bank" />
-        </div>
-
-        <div className="us-mobile-top">
-          <button className="us-logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
         </div>
       </div>
     </>
