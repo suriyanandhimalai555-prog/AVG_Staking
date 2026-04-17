@@ -21,6 +21,7 @@ const app = express();
 // 🔁 Replace with your real frontend domain
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://avgstake.com",
   "https://www.avgstake.com", // ⚠️ MUST CHANGE
 ];
 
