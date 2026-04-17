@@ -393,14 +393,18 @@ const WithdrawTransactions = () => {
       {editData && (
         <div className="wd-modal-overlay">
           <div className="wd-modal">
+            {/* HEADER */}
             <div className="wd-header">
               <h2>Edit Withdraw</h2>
               <button onClick={() => setEditData(null)}>✕</button>
             </div>
 
+            {/* BODY */}
             <div className="wd-body">
+
+              {/* USER DETAILS */}
               <div className="wd-box">
-                <h4>To Details</h4>
+                <h4>User Details</h4>
 
                 <div className="wd-row">
                   <span>User</span>
@@ -413,17 +417,65 @@ const WithdrawTransactions = () => {
                 </div>
               </div>
 
+              {/* BANK DETAILS */}
+              <div className="wd-box wd-full">
+                <h4>Bank Details</h4>
+
+                <div className="wd-grid">
+                  <div>
+                    <span>Account Holder</span>
+                    <b>{editData.bank?.accountHolderName || "-"}</b>
+                  </div>
+
+                  <div>
+                    <span>Bank Name</span>
+                    <b>{editData.bank?.bankName || "-"}</b>
+                  </div>
+
+                  <div>
+                    <span>Account Number</span>
+                    <b>
+                      {editData.bank?.accountNumber
+                        ? "****" + editData.bank.accountNumber.slice(-4)
+                        : "-"}
+                    </b>
+                  </div>
+
+                  <div>
+                    <span>IFSC Code</span>
+                    <b>{editData.bank?.ifscCode || "-"}</b>
+                  </div>
+
+                  <div>
+                    <span>Branch</span>
+                    <b>{editData.bank?.branch || "-"}</b>
+                  </div>
+
+                  <div>
+                    <span>UPI ID</span>
+                    <b>{editData.bank?.upiId || "-"}</b>
+                  </div>
+
+                  <div>
+                    <span>GPay / PhonePe</span>
+                    <b>{editData.bank?.gpayNumber || "-"}</b>
+                  </div>
+                </div>
+              </div>
+
+              {/* TRANSACTION DETAILS */}
               <div className="wd-box wd-full">
                 <h4>Transaction Details</h4>
 
                 <div className="wd-grid">
+
                   <div>
                     <span>Currency</span>
                     <b>{editData.currency}</b>
                   </div>
 
                   <div>
-                    <span>Request</span>
+                    <span>Request Amount</span>
                     <b>${Number(editData.amount || 0).toFixed(2)}</b>
                   </div>
 
@@ -456,22 +508,28 @@ const WithdrawTransactions = () => {
 
                   <div>
                     <span>Status</span>
-                    <input
-                      type="text"
+                    <select
                       name="status"
                       value={editData.status || ""}
                       onChange={handleEditChange}
-                    />
+                    >
+                      <option value="PENDING">PENDING</option>
+                      <option value="APPROVED">APPROVED</option>
+                      <option value="REJECTED">REJECTED</option>
+                    </select>
                   </div>
 
                   <div>
                     <span>Created</span>
                     <b>{editData.created}</b>
                   </div>
+
                 </div>
               </div>
+
             </div>
 
+            {/* FOOTER */}
             <div className="modal-footer">
               <button onClick={saveEdit}>Save</button>
               <button onClick={() => setEditData(null)}>Cancel</button>
@@ -493,20 +551,9 @@ const WithdrawTransactions = () => {
               <p><b>Wallet:</b> {viewData.wallet}</p>
               <p><b>Amount:</b> {viewData.amountDisplay}</p>
               <p><b>Txn ID:</b> {viewData.transactionId || "-"}</p>
-              <p><b>Proof:</b> {viewData.proof || "-"}</p>
+              <p><b>Proof:</b> {viewData.proof}</p>
               <p><b>Status:</b> {viewData.status}</p>
               <p><b>Created:</b> {viewData.created}</p>
-
-              <hr style={{ margin: "16px 0" }} />
-
-              <h4 style={{ marginBottom: "10px" }}>Bank Details</h4>
-              <p><b>Account Holder:</b> {viewData.bank?.accountHolderName}</p>
-              <p><b>Bank Name:</b> {viewData.bank?.bankName}</p>
-              <p><b>Account Number:</b> {viewData.bank?.accountNumber}</p>
-              <p><b>IFSC Code:</b> {viewData.bank?.ifscCode}</p>
-              <p><b>Branch:</b> {viewData.bank?.branch}</p>
-              <p><b>UPI ID:</b> {viewData.bank?.upiId}</p>
-              <p><b>GPay Number:</b> {viewData.bank?.gpayNumber}</p>
             </div>
           </div>
         </div>
