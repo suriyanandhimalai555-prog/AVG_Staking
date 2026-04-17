@@ -11817,8 +11817,33 @@ td {
   padding: 6px 12px;
 }
 
-/* OVERLAY */
-/* OVERLAY */
+.statusBadge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+/* Pending */
+.statusBadge.pending {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+/* Approved */
+.statusBadge.approved {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+/* Rejected */
+.statusBadge.rejected {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
 .wd-modal-overlay {
   position: fixed;
   inset: 0;

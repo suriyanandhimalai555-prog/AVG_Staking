@@ -285,7 +285,11 @@ const UserWithdraw = () => {
                       </td>
                       <td>{item.request}</td>
                       <td>{item.approved}</td>
-                      <td>{item.status}</td>
+                      <td>
+  <span className={`statusBadge ${item.status.toLowerCase()}`}>
+    {item.status}
+  </span>
+</td>
                       <td>{formatDateTime(item.date)}</td>
                     </tr>
                   ))
