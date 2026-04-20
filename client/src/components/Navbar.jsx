@@ -323,19 +323,19 @@ const NAVBAR = () => {
 
             <li
               className="nav-item mobile-login-btn"
-              // onClick={() => {
-              //   setShowLogin(true);
-              //   setShowSignup(false);
-              //   setShowOtpModal(false);
-              //   setMobileMenuOpen(false);
-              // }}
-  onClick={() => navigate("/login")}
+              onClick={() => {
+                setShowLogin(true);
+                setShowSignup(false);
+                setShowOtpModal(false);
+                setMobileMenuOpen(false);
+              }}
+  // onClick={() => navigate("/login")}
             >
               Log In
             </li>
           </ul>
 
-          {/* <button
+          <button
             className="login-btn desktop-only"
             onClick={() => {
               setShowLogin(true);
@@ -344,14 +344,14 @@ const NAVBAR = () => {
             }}
           >
             Log In
-          </button> */}
+          </button>
 
-          <button
+          {/* <button
   className="login-btn desktop-only"
   onClick={() => navigate("/login")}
 >
   Log In
-</button>
+</button> */}
         </div>
       </nav>
 
