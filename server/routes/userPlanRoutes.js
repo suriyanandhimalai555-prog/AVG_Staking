@@ -40,7 +40,7 @@ router.put("/:id/status", verifyToken, isAdmin, updateUserPlanStatus);
 
 router.get("/requests", verifyToken, getPendingUserPlanRequests);
 router.put("/:id/approve", verifyToken, approveUserPlanRequest);
-router.put("/user-plans/:id/reject", rejectUserPlanRequest);
+router.put("/:id/reject",verifyToken, rejectUserPlanRequest);
 
 router.put("/:id", verifyToken, updateUserPlan);
 
