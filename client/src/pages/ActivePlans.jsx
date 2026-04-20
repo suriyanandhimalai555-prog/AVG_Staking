@@ -496,7 +496,16 @@ const ActivePlans = () => {
                     </td>
                     <td>{plan.createdAt}</td>
                     <td style={{ display: "flex", gap: "8px" }}>
-  <button onClick={() => handleApproveRequest(plan.id)}>
+  <button 
+    onClick={() => handleApproveRequest(plan.id)}
+    style={{
+      backgroundColor: "#green",
+      color: "#fff",
+      padding: "6px 12px",
+      border: "none",
+      borderRadius: "4px",
+    }}
+    >
     Approve
   </button>
 
@@ -505,6 +514,9 @@ const ActivePlans = () => {
     style={{
       background: "#dc3545",
       color: "#fff",
+      padding: "6px 12px",
+      border: "none",
+      borderRadius: "4px",
     }}
   >
     Reject
