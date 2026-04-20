@@ -499,11 +499,12 @@ const ActivePlans = () => {
   <button 
     onClick={() => handleApproveRequest(plan.id)}
     style={{
-      backgroundColor: "#green",
+      backgroundColor: "green",
       color: "#fff",
       padding: "6px 12px",
       border: "none",
       borderRadius: "4px",
+      cursor: "pointer",
     }}
     >
     Approve
@@ -517,6 +518,7 @@ const ActivePlans = () => {
       padding: "6px 12px",
       border: "none",
       borderRadius: "4px",
+      cursor: "pointer",
     }}
   >
     Reject
