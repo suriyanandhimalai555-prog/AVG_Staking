@@ -155,6 +155,27 @@ const ActivePlans = () => {
     }
   };
 
+  const handleRejectRequest = async (requestId) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    await axios.put(
+      `${import.meta.env.VITE_APP_BASE_URL}/api/user-plans/${requestId}/reject`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    toast.success("Request rejected ❌");
+    fetchRequests();
+    fetchAllPlans();
+  } catch (err) {
+    console.error(err);
+    toast.error(err.response?.data?.message || "Reject failed ❌");
+  }
+};
+
   /* ================= ACTIONS ================= */
   const handleView = (plan) => {
     setSelectedPlan(plan);
@@ -474,11 +495,21 @@ const ActivePlans = () => {
                       <span className="badge-inactive">{plan.status}</span>
                     </td>
                     <td>{plan.createdAt}</td>
-                    <td>
-                      <button onClick={() => handleApproveRequest(plan.id)}>
-                        Approve
-                      </button>
-                    </td>
+                    <td style={{ display: "flex", gap: "8px" }}>
+  <button onClick={() => handleApproveRequest(plan.id)}>
+    Approve
+  </button>
+
+  <button
+    onClick={() => handleRejectRequest(plan.id)}
+    style={{
+      background: "#dc3545",
+      color: "#fff",
+    }}
+  >
+    Reject
+  </button>
+</td>
                   </tr>
                 ))
               ) : (

@@ -534,6 +534,66 @@ export const approveUserPlanRequest = async (req, res) => {
   }
 };
 
+export const rejectUserPlanRequest = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { id } = req.params;
+
+    await client.query("BEGIN");
+
+    const requestRes = await client.query(
+      `
+      SELECT up.*
+      FROM user_plans up
+      WHERE up.id = $1
+      FOR UPDATE
+      `,
+      [id]
+    );
+
+    const request = requestRes.rows[0];
+
+    if (!request) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    if (String(request.status).toLowerCase() !== "pending") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Request is not pending" });
+    }
+
+    const updateRes = await client.query(
+      `
+      UPDATE user_plans
+      SET status = 'rejected'
+      WHERE id = $1 AND status = 'pending'
+      RETURNING *
+      `,
+      [id]
+    );
+
+    if (!updateRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "Request could not be rejected" });
+    }
+
+    await client.query("COMMIT");
+
+    res.json({
+      message: "Request rejected successfully",
+      plan: updateRes.rows[0],
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("rejectUserPlanRequest error:", err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+};
+
 export const getROIHistory = async (req, res) => {
   try {
     const userId = req.user.id;

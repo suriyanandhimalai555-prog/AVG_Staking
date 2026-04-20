@@ -15,6 +15,7 @@ import {
   getPendingUserPlanRequests,
   approveUserPlanRequest,
   updateUserPlan,
+  rejectUserPlanRequest,
 } from "../controllers/userPlanController.js";
 
 const router = express.Router();
@@ -39,6 +40,7 @@ router.put("/:id/status", verifyToken, isAdmin, updateUserPlanStatus);
 
 router.get("/requests", verifyToken, getPendingUserPlanRequests);
 router.put("/:id/approve", verifyToken, approveUserPlanRequest);
+router.put("/user-plans/:id/reject", rejectUserPlanRequest);
 
 router.put("/:id", verifyToken, updateUserPlan);
 
