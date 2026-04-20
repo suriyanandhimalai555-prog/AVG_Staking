@@ -55,6 +55,7 @@ import UserRewardClaims from "./pages/UserRewardClaims";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Otp from "./pages/Otp";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
@@ -73,6 +74,8 @@ function App() {
         <Route path="/login" element={<Navigate to="/auth/login" replace />} />
         <Route path="/signup" element={<Navigate to="/auth/register" replace />} />
         <Route path="/otp" element={<Navigate to="/auth/otp" replace />} />
+
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         {/* PUBLIC WEBSITE */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />

@@ -142,7 +142,7 @@ const Login = () => {
                 <button
                   type="button"
                   className="link-btn"
-                  onClick={() => toast("Forgot password flow not added yet")}
+                  onClick={() => navigate("/forgot-password")}
                 >
                   Forgot password?
                 </button>

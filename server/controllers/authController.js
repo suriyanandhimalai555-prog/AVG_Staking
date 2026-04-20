@@ -7,6 +7,7 @@ import { createUser } from "../models/userModel.js";
 import { createReferralChain } from "../models/referralModel.js";
 import { generateUserCode } from "../utils/generateUserCode.js";
 import { sendSignupOtpEmail } from "../utils/mailer.js";
+import { sendForgotPasswordOtpEmail } from "../utils/mailer.js";
 
 const OTP_MINUTES = Number(process.env.OTP_EXPIRE_MINUTES || 10);
 
@@ -298,5 +299,185 @@ export const loginAsUser = async (req, res) => {
   } catch (error) {
     console.error("loginAsUser error:", error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+
+/* ================= FORGOT PASSWORD: REQUEST OTP ================= */
+export const requestForgotPasswordOtp = async (req, res) => {
+  try {
+    const { email, user_code } = req.body;
+
+    if (!email || !user_code) {
+      return res.status(400).json({ message: "Email and user code are required" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedUserCode = user_code.trim();
+
+    const userRes = await pool.query(
+      `SELECT id, name, email, user_code
+       FROM users
+       WHERE email = $1 AND user_code = $2`,
+      [normalizedEmail, trimmedUserCode]
+    );
+
+    const user = userRes.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const resetId = uuidv4();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // remove older active reset requests for this account
+    await pool.query(
+      `DELETE FROM password_reset_requests
+       WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await pool.query(
+      `INSERT INTO password_reset_requests
+        (id, user_id, email, user_code, otp_hash, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [resetId, user.id, normalizedEmail, trimmedUserCode, otpHash, expiresAt]
+    );
+
+    await sendForgotPasswordOtpEmail({
+      to: normalizedEmail,
+      name: user.name,
+      otp,
+      userCode: trimmedUserCode,
+    });
+
+    return res.status(200).json({
+      message: "OTP sent to your email",
+      resetId,
+    });
+  } catch (error) {
+    console.error("Forgot password request error:", error);
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+};
+
+/* ================= FORGOT PASSWORD: VERIFY OTP ================= */
+export const verifyForgotPasswordOtp = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { resetId, otp } = req.body;
+
+    if (!resetId || !otp) {
+      return res.status(400).json({ message: "Invalid request" });
+    }
+
+    const resetRes = await client.query(
+      `SELECT * FROM password_reset_requests WHERE id = $1`,
+      [resetId]
+    );
+
+    const resetReq = resetRes.rows[0];
+
+    if (!resetReq) {
+      return res.status(404).json({ message: "Reset request not found" });
+    }
+
+    if (new Date(resetReq.expires_at).getTime() < Date.now()) {
+      await client.query(`DELETE FROM password_reset_requests WHERE id = $1`, [
+        resetId,
+      ]);
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    const isMatch = await bcrypt.compare(String(otp), resetReq.otp_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    await client.query(
+      `UPDATE password_reset_requests
+       SET reset_token = $1, verified_at = NOW()
+       WHERE id = $2`,
+      [resetToken, resetId]
+    );
+
+    return res.status(200).json({
+      message: "OTP verified",
+      resetToken,
+    });
+  } catch (error) {
+    console.error("Verify forgot OTP error:", error);
+    return res.status(500).json({ message: "OTP verification failed" });
+  } finally {
+    client.release();
+  }
+};
+
+/* ================= FORGOT PASSWORD: RESET PASSWORD ================= */
+export const resetForgotPassword = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { resetToken, newPassword } = req.body;
+
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ message: "Invalid request" });
+    }
+
+    const resetRes = await client.query(
+      `SELECT * FROM password_reset_requests WHERE reset_token = $1`,
+      [resetToken]
+    );
+
+    const resetReq = resetRes.rows[0];
+
+    if (!resetReq) {
+      return res.status(404).json({ message: "Reset token not found" });
+    }
+
+    if (!resetReq.verified_at) {
+      return res.status(400).json({ message: "OTP not verified" });
+    }
+
+    if (new Date(resetReq.expires_at).getTime() < Date.now()) {
+      await client.query(`DELETE FROM password_reset_requests WHERE id = $1`, [
+        resetReq.id,
+      ]);
+      return res.status(400).json({ message: "Reset session expired" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await client.query("BEGIN");
+
+    await client.query(
+      `UPDATE users
+       SET password = $1
+       WHERE id = $2`,
+      [hashedPassword, resetReq.user_id]
+    );
+
+    await client.query(
+      `DELETE FROM password_reset_requests WHERE id = $1`,
+      [resetReq.id]
+    );
+
+    await client.query("COMMIT");
+
+    return res.status(200).json({
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Reset password error:", error);
+    return res.status(500).json({ message: "Password reset failed" });
+  } finally {
+    client.release();
   }
 };

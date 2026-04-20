@@ -30,3 +30,25 @@ export const sendSignupOtpEmail = async ({ to, otp, name }) => {
     `,
   });
 };
+
+export const sendForgotPasswordOtpEmail = async ({ to, name, otp, userCode }) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: "Reset your password",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Password Reset OTP</h2>
+        <p>Hello ${name || "User"},</p>
+        <p>You requested to reset the password for account <b>${userCode}</b>.</p>
+        <p>Your OTP is:</p>
+        <div style="font-size: 28px; font-weight: bold; letter-spacing: 4px;">
+          ${otp}
+        </div>
+        <p>This OTP will expire soon. If you did not request this, ignore this email.</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
