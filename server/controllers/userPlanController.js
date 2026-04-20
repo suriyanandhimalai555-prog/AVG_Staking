@@ -556,30 +556,21 @@ export const rejectUserPlanRequest = async (req, res) => {
 
     if (String(request.status).toLowerCase() !== "pending") {
       await client.query("ROLLBACK");
-      return res.status(400).json({ message: "Request is not pending" });
+      return res.status(400).json({ message: "Only pending requests can be rejected" });
     }
 
-    const updateRes = await client.query(
-      `
-      UPDATE user_plans
-      SET status = 'inactive'
-      WHERE id = $1 AND status = 'pending'
-      RETURNING *
-      `,
+    // ✅ DELETE instead of update
+    await client.query(
+      `DELETE FROM user_plans WHERE id = $1 AND status = 'pending'`,
       [id]
     );
-
-    if (!updateRes.rows.length) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ message: "Request could not be rejected" });
-    }
 
     await client.query("COMMIT");
 
     res.json({
-      message: "Request rejected successfully",
-      plan: updateRes.rows[0],
+      message: "Request rejected and deleted successfully",
     });
+
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("rejectUserPlanRequest error:", err);
