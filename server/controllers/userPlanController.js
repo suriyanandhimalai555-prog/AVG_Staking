@@ -543,12 +543,7 @@ export const rejectUserPlanRequest = async (req, res) => {
     await client.query("BEGIN");
 
     const requestRes = await client.query(
-      `
-      SELECT up.*
-      FROM user_plans up
-      WHERE up.id = $1
-      FOR UPDATE
-      `,
+      `SELECT * FROM user_plans WHERE id = $1 FOR UPDATE`,
       [id]
     );
 
@@ -567,7 +562,7 @@ export const rejectUserPlanRequest = async (req, res) => {
     const updateRes = await client.query(
       `
       UPDATE user_plans
-      SET status = 'rejected'
+      SET status = 'inactive'
       WHERE id = $1 AND status = 'pending'
       RETURNING *
       `,
