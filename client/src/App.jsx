@@ -52,9 +52,9 @@ import UserSupportTicket from "./pages/UserSupportTicket";
 import UserBank from "./pages/UserBank";
 import UserReward from "./pages/UserReward";
 import UserRewardClaims from "./pages/UserRewardClaims";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Otp from "./pages/Otp";
+// import Login from "./pages/Login";
+// import Signup from "./pages/Signup";
+// import Otp from "./pages/Otp";
 
 function App() {
   return (
@@ -66,17 +66,17 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/otp" element={<Otp />} /> */}
 
-        <Route path="/auth/login" element={<Login />} />
+        {/* <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Signup />} />
         <Route path="/auth/otp" element={<Otp />} />
 
         <Route path="/login" element={<Navigate to="/auth/login" replace />} />
         <Route path="/signup" element={<Navigate to="/auth/register" replace />} />
-        <Route path="/otp" element={<Navigate to="/auth/otp" replace />} />
+        <Route path="/otp" element={<Navigate to="/auth/otp" replace />} /> */}
         {/* PUBLIC WEBSITE */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
-          {/* <Route path="/auth/register" element={<Home />} /> */}
+          <Route path="/auth/register" element={<Home />} />
         </Route>
 
         {/* DASHBOARD (PROTECTED) */}
