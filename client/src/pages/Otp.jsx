@@ -10,7 +10,6 @@ const Otp = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🔥 Recover state if page refreshed
   const storedSignup = (() => {
     try {
       return JSON.parse(sessionStorage.getItem("pendingSignup") || "null");
@@ -24,11 +23,12 @@ const Otp = () => {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-
-  // 🔥 Only this controls success UI
   const [createdUserCode, setCreatedUserCode] = useState("");
 
   useEffect(() => {
+    // always start clean on OTP page
+    sessionStorage.removeItem("createdUserCode");
+
     if (!state?.signupId || !state?.email || !state?.formData) {
       navigate("/signup", { replace: true });
     }
@@ -59,17 +59,19 @@ const Otp = () => {
         }
       );
 
-      console.log("VERIFY RESPONSE:", res.data); // 🧪 debug
+      console.log("VERIFY RESPONSE:", res.data);
 
-      if (!res.data?.user_code) {
+      const userCode =
+        res.data?.user_code ||
+        res.data?.data?.user_code ||
+        res.data?.user?.user_code;
+
+      if (!userCode) {
         throw new Error("User code not returned from server");
       }
 
-      // ✅ Set user code FIRST
-      setCreatedUserCode(res.data.user_code);
-
-      // cleanup
-      sessionStorage.removeItem("pendingSignup");
+      sessionStorage.setItem("createdUserCode", userCode);
+      setCreatedUserCode(userCode);
 
       toast.success("Email verified and account created");
     } catch (err) {
@@ -156,8 +158,6 @@ const Otp = () => {
 
         <div className="auth-right">
           <div className="auth-card">
-
-            {/* 🔥 SUCCESS UI (based on user_code) */}
             {createdUserCode ? (
               <div className="success-panel">
                 <h2 className="auth-heading">
@@ -200,14 +200,17 @@ const Otp = () => {
 
                 <button
                   className="primary-btn"
-                  onClick={() => navigate("/login")}
+                  onClick={() => {
+                    sessionStorage.removeItem("createdUserCode");
+                    sessionStorage.removeItem("pendingSignup");
+                    navigate("/login");
+                  }}
                 >
                   Continue to Login
                 </button>
               </div>
             ) : (
               <>
-                {/* 🔥 OTP FORM */}
                 <h2 className="auth-heading">
                   Enter <span className="accent">OTP</span>
                 </h2>
@@ -250,17 +253,13 @@ const Otp = () => {
 
                   <div className="footer-link">
                     Back to{" "}
-                    <button
-                      type="button"
-                      onClick={() => navigate("/signup")}
-                    >
+                    <button type="button" onClick={() => navigate("/signup")}>
                       Signup
                     </button>
                   </div>
                 </form>
               </>
             )}
-
           </div>
         </div>
       </div>

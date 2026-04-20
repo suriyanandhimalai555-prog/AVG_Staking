@@ -82,6 +82,9 @@ const Signup = () => {
     try {
       setLoading(true);
 
+      // clear any old success code before a new signup flow starts
+      sessionStorage.removeItem("createdUserCode");
+
       const res = await axios.post(
         `${import.meta.env.VITE_APP_BASE_URL}/api/auth/signup`,
         payload
