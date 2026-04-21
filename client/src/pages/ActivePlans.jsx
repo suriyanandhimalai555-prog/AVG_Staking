@@ -558,7 +558,7 @@ const ActivePlans = () => {
                       {menuOpen === plan.id && (
                         <div className="action-dropdown">
                           <div onClick={() => handleView(plan)}>View</div>
-                          <div onClick={() => handleEdit(plan)}>Edit</div>
+                          {/* <div onClick={() => handleEdit(plan)}>Edit</div> */}
                           <div onClick={() => handleStatusChange(plan)}>
                             {plan.status === 'Active' ? 'Deactivate' : 'Activate'}
                           </div>
