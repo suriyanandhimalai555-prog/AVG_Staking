@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from "react";
 // import "./Hero.css";
 import hero from "../assets/hero.png"; // your right-side image
 import logo from "../assets/logo.png"; // import your logo for favicon
+import { useNavigate } from "react-router-dom";
 
 const Hero = ({ onLoginClick }) => {
   const heroRef = useRef(null);
   const glowRef = useRef(null);
   const [showLogin, setShowLogin] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set favicon dynamically using the logo
@@ -116,10 +118,11 @@ const Hero = ({ onLoginClick }) => {
             Today and Watch Your Crypto Grow.
           </p>
 
-          {/* <button className="hero-btn" onClick={handleSignInClick}>
-            <span className="btn-text">Sign In</span>
+          <button className="hero-btn" onClick={() => navigate('/auth/login')}>
+            <span className="btn-text"
+            >Sign In</span>
             <span className="btn-icon">↗</span>
-          </button> */}
+          </button>
         </div>
 
         {/* RIGHT CONTENT */}

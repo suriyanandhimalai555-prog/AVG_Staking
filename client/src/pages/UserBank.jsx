@@ -193,16 +193,19 @@ const UserBank = () => {
                 <Input name="bankName" label="Bank Name" value={formData.bankName} onChange={handleChange} />
                 <Input name="accountNumber" label="Account Number" value={formData.accountNumber} onChange={handleChange} />
                 <Input name="ifscCode" label="IFSC Code" value={formData.ifscCode} onChange={handleChange} />
-                <Input name="branch" label="Branch" value={formData.branch} onChange={handleChange} />
+                <Input name="branch" label="Account Branch Name" value={formData.branch} onChange={handleChange} />
               </div>
 
               <div className="modalCard">
                 <h4>UPI INFORMATION</h4>
 
                 <Input name="upiId" label="UPI ID" value={formData.upiId} onChange={handleChange} />
+                <label className="block text-sm font-medium mb-2">
+                  Enter GPay, PhonePe, Paytm<span className="text-green-500"> Number</span>
+                </label>
+
                 <Input
                   name="gpayNumber"
-                  label="GPay, PhonePe, Paytm Number"
                   value={formData.gpayNumber}
                   onChange={handleChange}
                 />
