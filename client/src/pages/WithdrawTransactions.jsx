@@ -257,28 +257,68 @@ const WithdrawTransactions = () => {
       return;
     }
 
-    const exportData = rowsToExport.map((item, index) => ({
-      "S.NO": index + 1,
-      USER: item.user,
-      "WALLET TYPE": item.wallet,
-      "REQUEST AMOUNT": item.amountDisplay,
-      "APPROVED USD": `$${Number(item.approvedUsd || 0).toFixed(2)}`,
-      "APPROVED INR": `₹${Number(item.approvedInr || 0).toFixed(2)}`,
-      "TRANSACTION ID": item.transactionId || "-",
-      "TRANSACTION PROOF": item.proof || "-",
-      STATUS: item.status,
-      "CREATED AT": item.created,
-    }));
+    const exportData = rowsToExport.map((item) => {
+      const amount = Number(item.amount || 0);
+      const fee = -(amount * 0.1);
+      const dollar = amount + fee;
+
+      const userText = item.user || "-";
+      const codeMatch = userText.match(/\((.*?)\)/);
+      const code = codeMatch ? codeMatch[1] : "-";
+      const user = userText.replace(/\s*\(.*?\)\s*$/, "").trim() || "-";
+
+      return {
+        USER: user,
+        CODE: code,
+        "Account Number": item.bank?.accountNumber || "-",
+        "IFSC Code": item.bank?.ifscCode || "-",
+        "GPay / PhonePe": item.bank?.gpayNumber || "-",
+        "Request Amount": amount,
+        "Fee (10%)": fee,
+        Dollar: dollar,
+      };
+    });
+
+    const totalDollar = exportData.reduce(
+      (sum, row) => sum + Number(row.Dollar || 0),
+      0
+    );
+
+    exportData.push({
+      USER: "",
+      CODE: "",
+      "Account Number": "",
+      "IFSC Code": "",
+      "GPay / PhonePe": "",
+      "Request Amount": "",
+      "Fee (10%)": "",
+      Dollar: totalDollar,
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    worksheet["!cols"] = [
+      { wch: 26 },
+      { wch: 14 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 14 },
+    ];
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Withdrawals");
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      `${status.toUpperCase()} Withdrawals`
+    );
 
-    const fileName = `withdrawals_${status.toLowerCase()}_${new Date()
-      .toISOString()
-      .slice(0, 10)}.xlsx`;
-
-    XLSX.writeFile(workbook, fileName);
+    XLSX.writeFile(
+      workbook,
+      `withdrawals_${status.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
   };
 
   return (
@@ -326,9 +366,15 @@ const WithdrawTransactions = () => {
         </div>
 
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <button onClick={() => exportByStatus("PENDING")} className="tx-manual-deposit-btn">Download Pending Excel</button>
-          <button onClick={() => exportByStatus("APPROVED") } className="tx-manual-deposit-btn">Download Approved Excel</button>
-          <button onClick={() => exportByStatus("REJECTED")} className="tx-manual-deposit-btn">Download Rejected Excel</button>
+          <button onClick={() => exportByStatus("PENDING")} className="tx-manual-deposit-btn">
+            Download Pending Excel
+          </button>
+          <button onClick={() => exportByStatus("APPROVED")} className="tx-manual-deposit-btn">
+            Download Approved Excel
+          </button>
+          <button onClick={() => exportByStatus("REJECTED")} className="tx-manual-deposit-btn">
+            Download Rejected Excel
+          </button>
         </div>
       </div>
 
@@ -360,8 +406,7 @@ const WithdrawTransactions = () => {
                   <td>{d.amountDisplay}</td>
                   {/* <td></td> */}
                   <td>
-                    {[d.proof !== "-" ? d.proof : null,
-                    d.transactionId !== "-" ? d.transactionId : null]
+                    {[d.proof !== "-" ? d.proof : null, d.transactionId !== "-" ? d.transactionId : null]
                       .filter(Boolean)
                       .join(" | ") || "-"}
                   </td>
@@ -472,15 +517,12 @@ const WithdrawTransactions = () => {
       {editData && (
         <div className="wd-modal-overlay">
           <div className="wd-modal">
-            {/* HEADER */}
             <div className="wd-header">
               <h2>Edit Withdraw</h2>
               <button onClick={() => setEditData(null)}>✕</button>
             </div>
 
-            {/* BODY */}
             <div className="wd-body">
-              {/* USER DETAILS */}
               <div className="wd-box">
                 <h4>User Details</h4>
 
@@ -495,7 +537,6 @@ const WithdrawTransactions = () => {
                 </div>
               </div>
 
-              {/* BANK DETAILS */}
               <div className="wd-box wd-full">
                 <h4>Bank Details</h4>
 
@@ -537,7 +578,6 @@ const WithdrawTransactions = () => {
                 </div>
               </div>
 
-              {/* TRANSACTION DETAILS */}
               <div className="wd-box wd-full">
                 <h4>Transaction Details</h4>
 
@@ -600,7 +640,6 @@ const WithdrawTransactions = () => {
               </div>
             </div>
 
-            {/* FOOTER */}
             <div className="modal-footer">
               <button onClick={saveEdit}>Save</button>
               <button onClick={() => setEditData(null)}>Cancel</button>
