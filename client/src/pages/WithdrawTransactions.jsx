@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { FaEllipsisV } from "react-icons/fa";
 import axios from "axios";
+import * as XLSX from "xlsx";
 
 const WithdrawTransactions = () => {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState(10);
   const [menu, setMenu] = useState(null);
@@ -41,6 +43,8 @@ const WithdrawTransactions = () => {
     return `${day}/${month}/${year}, ${formattedHours}:${minutes}:${seconds} ${ampm}`;
   };
 
+  const normalizeStatus = (status) => String(status || "PENDING").toUpperCase();
+
   const fetchData = useCallback(async () => {
     try {
       const res = await axios.get(
@@ -70,7 +74,7 @@ const WithdrawTransactions = () => {
           transactionId: d.transaction_id || "",
           currency: d.currency_type || "USD",
           proof: d.proof || d.transaction_proof || d.tx_proof || "",
-          status: d.status || "PENDING",
+          status: normalizeStatus(d.status),
           created: formatDateTime(d.created_at),
 
           bank: {
@@ -108,17 +112,22 @@ const WithdrawTransactions = () => {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
+
     return data.filter((d) => {
-      return (
+      const matchesSearch =
         d.user.toLowerCase().includes(q) ||
         d.wallet.toLowerCase().includes(q) ||
         d.amountDisplay.toLowerCase().includes(q) ||
         d.transactionId.toLowerCase().includes(q) ||
         d.proof.toLowerCase().includes(q) ||
-        d.status.toLowerCase().includes(q)
-      );
+        d.status.toLowerCase().includes(q);
+
+      const matchesStatus =
+        statusFilter === "ALL" || normalizeStatus(d.status) === statusFilter;
+
+      return matchesSearch && matchesStatus;
     });
-  }, [search, data]);
+  }, [search, data, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rows));
 
@@ -133,7 +142,7 @@ const WithdrawTransactions = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [search, rows]);
+  }, [search, rows, statusFilter]);
 
   const getPagination = () => {
     const pages = [];
@@ -238,6 +247,40 @@ const WithdrawTransactions = () => {
     }
   };
 
+  const exportByStatus = (status) => {
+    const rowsToExport = data.filter(
+      (item) => normalizeStatus(item.status) === normalizeStatus(status)
+    );
+
+    if (!rowsToExport.length) {
+      alert(`No ${status.toLowerCase()} withdrawals found to export.`);
+      return;
+    }
+
+    const exportData = rowsToExport.map((item, index) => ({
+      "S.NO": index + 1,
+      USER: item.user,
+      "WALLET TYPE": item.wallet,
+      "REQUEST AMOUNT": item.amountDisplay,
+      "APPROVED USD": `$${Number(item.approvedUsd || 0).toFixed(2)}`,
+      "APPROVED INR": `₹${Number(item.approvedInr || 0).toFixed(2)}`,
+      "TRANSACTION ID": item.transactionId || "-",
+      "TRANSACTION PROOF": item.proof || "-",
+      STATUS: item.status,
+      "CREATED AT": item.created,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Withdrawals");
+
+    const fileName = `withdrawals_${status.toLowerCase()}_${new Date()
+      .toISOString()
+      .slice(0, 10)}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="users-page">
       <div className="users-header">
@@ -251,6 +294,42 @@ const WithdrawTransactions = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+          flexWrap: "wrap",
+          margin: "12px 0 16px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }} className="rr-filter-box">
+          <span style={{ fontWeight: 600 }}>Status Filter:</span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              outline: "none",
+            }}
+          >
+            <option value="ALL">All</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button onClick={() => exportByStatus("PENDING")} className="tx-manual-deposit-btn">Download Pending Excel</button>
+          <button onClick={() => exportByStatus("APPROVED") } className="tx-manual-deposit-btn">Download Approved Excel</button>
+          <button onClick={() => exportByStatus("REJECTED")} className="tx-manual-deposit-btn">Download Rejected Excel</button>
+        </div>
       </div>
 
       <div className="table-card">
@@ -401,7 +480,6 @@ const WithdrawTransactions = () => {
 
             {/* BODY */}
             <div className="wd-body">
-
               {/* USER DETAILS */}
               <div className="wd-box">
                 <h4>User Details</h4>
@@ -464,7 +542,6 @@ const WithdrawTransactions = () => {
                 <h4>Transaction Details</h4>
 
                 <div className="wd-grid">
-
                   <div>
                     <span>Currency</span>
                     <b>{editData.currency}</b>
@@ -519,10 +596,8 @@ const WithdrawTransactions = () => {
                     <span>Created</span>
                     <b>{editData.created}</b>
                   </div>
-
                 </div>
               </div>
-
             </div>
 
             {/* FOOTER */}
@@ -543,13 +618,27 @@ const WithdrawTransactions = () => {
             </div>
 
             <div className="modal-body">
-              <p><b>User:</b> {viewData.user}</p>
-              <p><b>Wallet:</b> {viewData.wallet}</p>
-              <p><b>Amount:</b> {viewData.amountDisplay}</p>
-              <p><b>Txn ID:</b> {viewData.transactionId || "-"}</p>
-              <p><b>Proof:</b> {viewData.proof}</p>
-              <p><b>Status:</b> {viewData.status}</p>
-              <p><b>Created:</b> {viewData.created}</p>
+              <p>
+                <b>User:</b> {viewData.user}
+              </p>
+              <p>
+                <b>Wallet:</b> {viewData.wallet}
+              </p>
+              <p>
+                <b>Amount:</b> {viewData.amountDisplay}
+              </p>
+              <p>
+                <b>Txn ID:</b> {viewData.transactionId || "-"}
+              </p>
+              <p>
+                <b>Proof:</b> {viewData.proof}
+              </p>
+              <p>
+                <b>Status:</b> {viewData.status}
+              </p>
+              <p>
+                <b>Created:</b> {viewData.created}
+              </p>
             </div>
           </div>
         </div>
