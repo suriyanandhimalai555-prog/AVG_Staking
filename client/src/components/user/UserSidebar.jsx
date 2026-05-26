@@ -17,15 +17,11 @@ import Logo from "../../assets/logo.png";
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const location = useLocation();
-
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // clear auth data (adjust based on your app)
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
-    // redirect to login
     navigate("/");
   };
 
@@ -33,13 +29,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     setOpenMenu(openMenu === menu ? null : menu);
   };
 
-  // 🔥 Prevent scroll
+  // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
-    return () => (document.body.style.overflow = "auto");
+    return () => {
+      document.body.style.overflow = "auto";
+    };
   }, [isOpen]);
 
-  // 🔥 AUTO OPEN ONLY (NO ACTIVE)
+  // Auto open dropdown based on route
   useEffect(() => {
     if (["/user-deposit", "/user-withdraw", "/user-transaction"].some(p => location.pathname.startsWith(p))) {
       setOpenMenu("transactions");
@@ -58,7 +56,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     }
   }, [location.pathname]);
 
-  // 🔥 MENU ITEM (ONLY ACTIVE IF DIRECT LINK)
   const MenuItem = ({ icon, label, to, hasDropdown, menuKey }) => {
     const isActive = to && location.pathname === to;
 
@@ -89,7 +86,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     );
   };
 
-  // 🔥 SUB ITEM (ONLY THIS SHOULD HIGHLIGHT)
   const SubItem = ({ label, to }) => {
     const isActive = location.pathname === to;
 
@@ -104,6 +100,14 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     );
   };
 
+  const sidebarStyle = {
+    overflowY: "auto",
+    overflowX: "hidden",
+    WebkitOverflowScrolling: "touch",
+    overscrollBehavior: "contain",
+    height: "100dvh",
+  };
+
   return (
     <>
       {/* OVERLAY */}
@@ -112,8 +116,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         onClick={() => setIsOpen(false)}
       />
 
-      <div className={`us-sidebar ${isOpen ? "open" : ""}`}>
-
+      <div
+        className={`us-sidebar ${isOpen ? "open" : ""}`}
+        style={sidebarStyle}
+      >
         {/* CLOSE BTN */}
         <button className="us-close-btn" onClick={() => setIsOpen(false)}>
           ✕
@@ -198,7 +204,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <SubItem label="Rewards" to="/user-rewards" />
           <SubItem label="Monthly Claims" to="/user-monthly-claims" />
         </div>
-        {/* <MenuItem icon={<FaTrophy />} label="Rewards" to="/user-rewards" /> */}
 
         {/* ACCOUNT */}
         <p className="us-section">ACCOUNT</p>
