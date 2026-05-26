@@ -38,14 +38,18 @@ const AllPlans = () => {
       const token = localStorage.getItem("token");
 
       if (!selectedPlan || !planAmount) {
-        return toast.error("Please enter amount ⚠️");
+        return toast.error("Please enter amount ⚠️", {
+          duration: 3000,
+        });
       }
 
       if (Number(planAmount) <= 0) {
-        return toast.error("Amount must be greater than 0 ❌");
+        return toast.error("Amount must be greater than 0 ❌", {
+          duration: 3000,
+        });
       }
 
-      // 🔄 Optional loading toast
+      // 🔄 Loading toast
       const loadingToast = toast.loading("Processing purchase...");
 
       await axios.post(
@@ -59,18 +63,26 @@ const AllPlans = () => {
         }
       );
 
+      // ✅ remove loading
       toast.dismiss(loadingToast);
-      toast.success("Plan Requested successfully 🎉");
+
+      // ✅ success toast auto hide after 3 sec
+      toast.success("Plan Requested successfully 🎉", {
+        duration: 3000,
+      });
 
       setIsPlanModalOpen(false);
       setPlanAmount("");
 
-      // better than reload
       fetchPlans();
 
     } catch (err) {
+
       toast.error(
-        err.response?.data?.message || "Purchase failed ❌"
+        err.response?.data?.message || "Purchase failed ❌",
+        {
+          duration: 3000,
+        }
       );
 
       console.error("BUY ERROR:", err.response?.data || err.message);
