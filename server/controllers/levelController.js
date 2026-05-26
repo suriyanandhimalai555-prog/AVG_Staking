@@ -247,7 +247,6 @@ export const creditLevelIncome = async ({
       current = parentId;
     }
 
-    // Process each upline level
     for (let i = 0; i < uplineChain.length; i++) {
       const receiverId = uplineChain[i];
       const level = i + 1;
@@ -257,27 +256,28 @@ export const creditLevelIncome = async ({
 
       let payableAmount = amount;
 
-      // Level unlock logic for level 2+
+      // Level 1 = direct income, no unlock threshold
       if (level > 1) {
         const required = await getLevelUnlockRequirement(client, level);
         if (!required) continue;
 
-        const qualifyingRootId = uplineChain[i - 1];
-        if (!qualifyingRootId) continue;
-
-        const depthToCheck = Math.max(1, level - 1);
-
+        // ✅ IMPORTANT FIX:
+        // Check unlock against the RECEIVER's exact depth business,
+        // not against the previous upline branch.
         const businessBefore = await getExactDepthBusinessTotal(
           client,
-          qualifyingRootId,
-          depthToCheck,
+          receiverId,
+          level,
           userPlanId
         );
 
         const businessAfter = businessBefore + amount;
 
+        // Still below threshold, no payout
         if (businessAfter <= required) continue;
 
+        // If this purchase is the one that crosses the threshold,
+        // pay only the amount above the threshold.
         if (businessBefore < required) {
           payableAmount = businessAfter - required;
         }
@@ -285,8 +285,6 @@ export const creditLevelIncome = async ({
 
       if (payableAmount <= 0) continue;
 
-      // ✅ IMPORTANT:
-      // Calculate the actual level payout from the full eligible amount first.
       const totalIncome = Number(
         ((payableAmount * Number(config.percentage)) / 100).toFixed(2)
       );
@@ -295,8 +293,6 @@ export const creditLevelIncome = async ({
 
       let remainingIncome = totalIncome;
 
-      // Distribute this income across the receiver's active plans, oldest first,
-      // while respecting plan ceiling limits.
       const plansRes = await client.query(
         `
         SELECT 
@@ -363,7 +359,6 @@ export const creditLevelIncome = async ({
         remainingIncome = Number((remainingIncome - toInsert).toFixed(2));
       }
     }
-
   } catch (err) {
     console.error("LEVEL INCOME ERROR:", err);
     throw err;
