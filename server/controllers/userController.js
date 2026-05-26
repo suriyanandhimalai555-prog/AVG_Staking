@@ -499,27 +499,53 @@ export const updateTicketStatus = async (req, res) => {
 };
 
 // user reffral
+// user referral
 export const getMyReferrals = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const result = await pool.query(`
-      SELECT 
-        r.id,
+    const userRes = await pool.query(
+      `SELECT user_code FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    const userCode = userRes.rows[0]?.user_code;
+
+    if (!userCode) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        u.id,
         u.name AS username,
         u.lastname,
         u.phone,
         u.user_code,
-        r.level,
-        r.created_at
-      FROM referrals r
-      JOIN users u ON u.id = r.referred_user_id
-      WHERE r.referrer_user_id = $1
-      ORDER BY r.created_at DESC
-    `, [userId]);
+        rt.level,
+        u.created_at
+      FROM referral_tree rt
+      JOIN users u
+        ON u.user_code = rt.descendant_user_code
+      WHERE rt.ancestor_user_code = $1
+        AND rt.descendant_user_code <> $1
+      ORDER BY rt.level ASC, u.created_at DESC, u.id DESC
+      `,
+      [userCode]
+    );
 
-    res.json(result.rows);
-
+    res.json(
+      result.rows.map((row) => ({
+        id: row.id,
+        username: row.username,
+        lastname: row.lastname || "-",
+        phone: row.phone || "-",
+        user_code: row.user_code,
+        level: Number(row.level || 0),
+        created_at: row.created_at,
+      }))
+    );
   } catch (err) {
     console.error("getMyReferrals error:", err);
     res.status(500).json({ error: err.message });

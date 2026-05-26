@@ -289,7 +289,7 @@ const MyReferral = () => {
                       </td>
                       <td>{item.lastname || "-"}</td>
                       <td>{item.phone || "-"}</td>
-                      <td>Level {item.level || "-"}</td>
+                      <td>Level {Number(item.level) || "-"}</td>
                       <td>{formatDate(item.created_at)}</td>
                     </tr>
                   ))
