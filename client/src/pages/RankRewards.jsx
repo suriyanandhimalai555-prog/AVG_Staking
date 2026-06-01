@@ -1,6 +1,23 @@
 import React, { useMemo, useState, useEffect } from "react";
 import API from "../utils/api";
 
+const formatDateOnly = (value) => {
+  if (!value) return "-";
+
+  const raw = String(value);
+  const normalized = raw.includes("T") ? raw : `${raw}T00:00:00`;
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+};
+
 const RankRewards = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -10,16 +27,13 @@ const RankRewards = () => {
   const [rewardsData, setRewardsData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal states
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
   const [selectedReward, setSelectedReward] = useState(null);
 
-  // Popup states
   const [popupMessage, setPopupMessage] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
-  /* ================= FETCH ================= */
   const fetchRewards = async () => {
     try {
       setLoading(true);
@@ -37,7 +51,7 @@ const RankRewards = () => {
         phoneNo: item.phone || "-",
         reward: `${item.reward} ($${item.progress} / $${item.target_amount})`,
         status: item.status || "pending",
-        createdAt: "-",
+        achievedDate: formatDateOnly(item.achieved_date),
       }));
 
       setRewardsData(formatted);
@@ -53,7 +67,6 @@ const RankRewards = () => {
     fetchRewards();
   }, []);
 
-  /* ================= POPUP ================= */
   const showPopupMessage = (message) => {
     setPopupMessage(message);
     setShowPopup(true);
@@ -63,7 +76,6 @@ const RankRewards = () => {
     }, 3000);
   };
 
-  /* ================= ACTIONS ================= */
   const handleView = (reward) => {
     setSelectedReward(reward);
     setModalType("view");
@@ -133,7 +145,6 @@ const RankRewards = () => {
     setSelectedReward(null);
   };
 
-  /* ================= FILTER ================= */
   const filteredData = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
 
@@ -151,7 +162,6 @@ const RankRewards = () => {
     });
   }, [rewardsData, searchTerm, statusFilter]);
 
-  /* ================= PAGINATION ================= */
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
 
   const pageItems = useMemo(() => {
@@ -216,7 +226,6 @@ const RankRewards = () => {
     }
   };
 
-  /* ================= MODAL ================= */
   const renderModal = () => {
     if (!showModal) return null;
 
@@ -334,6 +343,7 @@ const RankRewards = () => {
               <th>USERNAME</th>
               <th>PHONE NO</th>
               <th>REWARD</th>
+              <th>ACHIEVED DATE</th>
               <th>STATUS</th>
               <th>ACTIONS</th>
             </tr>
@@ -342,7 +352,7 @@ const RankRewards = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="6" className="rr-no-data">
+                <td colSpan="7" className="rr-no-data">
                   Loading...
                 </td>
               </tr>
@@ -356,6 +366,7 @@ const RankRewards = () => {
                   </td>
                   <td>{reward.phoneNo}</td>
                   <td className="rr-reward-cell">{reward.reward}</td>
+                  <td>{reward.achievedDate}</td>
                   <td>
                     <span className={`rr-status-badge ${getStatusClass(reward.status)}`}>
                       {reward.status.charAt(0).toUpperCase() + reward.status.slice(1)}
@@ -387,7 +398,7 @@ const RankRewards = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="rr-no-data">
+                <td colSpan="7" className="rr-no-data">
                   No rewards found
                 </td>
               </tr>
@@ -396,7 +407,6 @@ const RankRewards = () => {
         </table>
       </div>
 
-      {/* SAME PAGINATION UI AS LEVEL EARNINGS */}
       <div className="pagination">
         <div className="usrDeposit__rows">
           Rows per page

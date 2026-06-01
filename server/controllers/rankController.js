@@ -87,6 +87,14 @@ export const getRanksUser = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    const getISTDate = () =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+
     const rankRes = await pool.query(`
       SELECT id, target_amount, reward
       FROM rank_config
@@ -97,7 +105,6 @@ export const getRanksUser = async (req, res) => {
     const ranks = rankRes.rows;
     if (ranks.length === 0) return res.json([]);
 
-    // ✅ DIRECT USERS FROM referrals (FIXED)
     const directRes = await pool.query(
       `
       SELECT u.id, u.name, u.lastname
@@ -108,7 +115,6 @@ export const getRanksUser = async (req, res) => {
       [userId]
     );
 
-    // ✅ RECURSIVE USING referrals (FIXED)
     const getBranchBusiness = async (rootId) => {
       const result = await pool.query(
         `
@@ -127,7 +133,8 @@ export const getRanksUser = async (req, res) => {
         FROM user_plans
         WHERE user_id IN (
           SELECT id FROM branch
-          UNION SELECT $1
+          UNION ALL
+          SELECT $1
         )
         `,
         [rootId]
@@ -192,17 +199,48 @@ export const getRanksUser = async (req, res) => {
         .reduce((sum, t) => sum + t.amount, 0);
 
       const unlocked = progress >= rank.target_amount;
+      const today = getISTDate();
 
-      // ✅ KEEP YOUR ORIGINAL STATUS LOGIC
       const rewardRow = await pool.query(
-        `SELECT status
-         FROM user_rewards
-         WHERE user_id=$1 AND reward=$2 AND target_amount=$3
-         LIMIT 1`,
+        `
+        SELECT id, status, achieved_date
+        FROM user_rewards
+        WHERE user_id = $1
+          AND reward = $2
+          AND target_amount = $3
+        LIMIT 1
+        `,
         [userId, rank.reward, rank.target_amount]
       );
 
-      const status = rewardRow.rows[0]?.status || "pending";
+      let status = rewardRow.rows[0]?.status || "pending";
+      let achieved_date = rewardRow.rows[0]?.achieved_date || null;
+
+      if (unlocked) {
+        if (rewardRow.rows.length === 0) {
+          await pool.query(
+            `
+            INSERT INTO user_rewards
+              (user_id, reward, target_amount, status, progress, achieved_date)
+            VALUES
+              ($1, $2, $3, 'pending', $4, $5)
+            `,
+            [userId, rank.reward, rank.target_amount, progress, today]
+          );
+
+          achieved_date = today;
+          status = "pending";
+        } else {
+          await pool.query(
+            `
+            UPDATE user_rewards
+            SET progress = GREATEST(COALESCE(progress, 0), $1)
+            WHERE id = $2
+            `,
+            [progress, rewardRow.rows[0].id]
+          );
+        }
+      }
 
       results.push({
         reward: rank.reward,
@@ -210,11 +248,9 @@ export const getRanksUser = async (req, res) => {
         progress,
         unlocked,
         status,
+        achieved_date,
         timeline,
       });
-
-      // ✅ IMPORTANT: KEEP THIS (YOUR ORIGINAL LOGIC)
-      if (status !== "approved") break;
     }
 
     res.json(results);
@@ -242,7 +278,6 @@ export const getAllUsersRewards = async (req, res) => {
       ORDER BY id DESC
     `);
 
-    // ✅ FIXED: referrals based recursion
     const getBranchBusiness = async (rootId) => {
       const result = await pool.query(
         `
@@ -261,7 +296,8 @@ export const getAllUsersRewards = async (req, res) => {
         FROM user_plans
         WHERE user_id IN (
           SELECT id FROM branch
-          UNION SELECT $1
+          UNION ALL
+          SELECT $1
         )
         `,
         [rootId]
@@ -273,7 +309,6 @@ export const getAllUsersRewards = async (req, res) => {
     const finalData = [];
 
     for (const user of usersRes.rows) {
-      // ✅ FIXED: direct users via referrals
       const directRes = await pool.query(
         `
         SELECT u.id, u.name, u.lastname
@@ -336,19 +371,21 @@ export const getAllUsersRewards = async (req, res) => {
 
         const unlocked = progress >= rank.target_amount;
 
-        // ✅ KEEP YOUR ORIGINAL STATUS FLOW
         const rewardRow = await pool.query(
-          `SELECT status
-           FROM user_rewards
-           WHERE user_id=$1 AND reward=$2 AND target_amount=$3
-           LIMIT 1`,
+          `
+          SELECT status, achieved_date
+          FROM user_rewards
+          WHERE user_id = $1
+            AND reward = $2
+            AND target_amount = $3
+          LIMIT 1
+          `,
           [user.id, rank.reward, rank.target_amount]
         );
 
         const status = rewardRow.rows[0]?.status || "pending";
+        const achieved_date = rewardRow.rows[0]?.achieved_date || null;
 
-        // ✅ 🔥 IMPORTANT FILTER
-        // show ONLY achieved users
         if (unlocked) {
           finalData.push({
             userId: user.id,
@@ -360,17 +397,15 @@ export const getAllUsersRewards = async (req, res) => {
             progress,
             unlocked,
             status,
+            achieved_date,
           });
         }
-
-        // ✅ KEEP YOUR SEQUENTIAL LOGIC
-        if (status !== "approved") break;
       }
     }
 
     res.json(finalData);
   } catch (err) {
-    console.error(err);
+    console.error("getAllUsersRewards error:", err);
     res.status(500).json({ error: err.message });
   }
 };
