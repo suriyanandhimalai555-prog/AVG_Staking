@@ -251,6 +251,11 @@ export const getRanksUser = async (req, res) => {
         achieved_date,
         timeline,
       });
+
+      // Stop showing future rewards
+if (!unlocked) {
+  break;
+}
     }
 
     res.json(results);
