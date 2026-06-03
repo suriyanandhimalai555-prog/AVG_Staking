@@ -95,6 +95,27 @@ const RankRewards = () => {
     setShowModal(true);
   };
 
+  const handleUpdateStatus = async (reward, status) => {
+  try {
+    await API.post("/ranks/status", {
+      userId: reward.userId,
+      reward: reward.rewardName,
+      target_amount: reward.target_amount,
+      progress: reward.progress,
+      status,
+    });
+
+    fetchRewards();
+
+    showPopupMessage(
+      `Status changed to ${status.toUpperCase()} successfully`
+    );
+  } catch (err) {
+    console.error("Status update error:", err);
+    showPopupMessage("Failed to update status");
+  }
+};
+
   const handleApprove = async (reward) => {
     try {
       await API.post("/ranks/status", {
@@ -274,8 +295,8 @@ const RankRewards = () => {
               {modalType === "delete"
                 ? "Confirm Delete"
                 : modalType === "edit"
-                ? "Edit Reward"
-                : "View Details"}
+                  ? "Edit Reward"
+                  : "View Details"}
             </h3>
             <button className="rr-modal-close" onClick={() => setShowModal(false)}>
               ×
@@ -372,20 +393,20 @@ const RankRewards = () => {
 
           {/* Excel Downloads Section */}
           <div className="rr-excel-actions" style={{ display: "flex", gap: "10px" }}>
-            <button 
-              className="excel-btn  tx-manual-deposit-btn" 
+            <button
+              className="excel-btn  tx-manual-deposit-btn"
               onClick={() => handleDownloadExcel("pending")}
             >
               Download Pending Excel
             </button>
-            <button 
-              className="excel-btn approved tx-manual-deposit-btn" 
+            <button
+              className="excel-btn approved tx-manual-deposit-btn"
               onClick={() => handleDownloadExcel("approved")}
             >
               Download Approved Excel
             </button>
-            <button 
-              className="excel-btn rejected tx-manual-deposit-btn" 
+            <button
+              className="excel-btn rejected tx-manual-deposit-btn"
               onClick={() => handleDownloadExcel("rejected")}
             >
               Download Rejected Excel
@@ -443,8 +464,41 @@ const RankRewards = () => {
                             <button onClick={() => handleApprove(reward)}>
                               ✅ Approve
                             </button>
+
                             <button onClick={() => handleReject(reward)}>
                               ❌ Reject
+                            </button>
+                          </>
+                        )}
+
+                        {reward.status === "approved" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(reward, "pending")}
+                            >
+                              🔄 Move To Pending
+                            </button>
+
+                            <button
+                              onClick={() => handleUpdateStatus(reward, "rejected")}
+                            >
+                              ❌ Reject
+                            </button>
+                          </>
+                        )}
+
+                        {reward.status === "rejected" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(reward, "pending")}
+                            >
+                              🔄 Move To Pending
+                            </button>
+
+                            <button
+                              onClick={() => handleUpdateStatus(reward, "approved")}
+                            >
+                              ✅ Approve
                             </button>
                           </>
                         )}
