@@ -132,39 +132,39 @@ const RewardClaims = () => {
 
   // Memoized Search filter to match rows dynamically by Name, Lastname, or Reward
   const filteredRows = useMemo(() => {
-  const query = searchTerm.trim().toLowerCase();
+    const query = searchTerm.trim().toLowerCase();
 
-  if (!query) return rows;
+    if (!query) return rows;
 
-  return rows.filter((row) => {
-    const firstName = String(row.name || "").toLowerCase();
-    const lastName = String(row.lastname || "").toLowerCase();
-    const rewardName = String(row.reward || "").toLowerCase();
+    return rows.filter((row) => {
+      const firstName = String(row.name || "").toLowerCase();
+      const lastName = String(row.lastname || "").toLowerCase();
+      const rewardName = String(row.reward || "").toLowerCase();
 
-    // User Code / Referral Code
-    const userCode = String(
-      row.referral_code ||
-      row.user_code ||
-      row.userid ||
-      row.user_id ||
-      ""
-    ).toLowerCase();
+      // User Code / Referral Code
+      const userCode = String(
+        row.referral_code ||
+        row.user_code ||
+        row.userid ||
+        row.user_id ||
+        ""
+      ).toLowerCase();
 
-    return (
-      firstName.includes(query) ||
-      lastName.includes(query) ||
-      rewardName.includes(query) ||
-      userCode.includes(query)
-    );
-  });
-}, [rows, searchTerm]);
+      return (
+        firstName.includes(query) ||
+        lastName.includes(query) ||
+        rewardName.includes(query) ||
+        userCode.includes(query)
+      );
+    });
+  }, [rows, searchTerm]);
 
   return (
     <div className="rc-container">
       {/* Header section with layout positioning for the search bar */}
       <div className="rc-header-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "15px" }}>
         <h2 className="rc-title" style={{ margin: 0 }}>Reward Claims</h2>
-        
+
         <div className="rc-search-wrapper">
           <input
             type="text"
@@ -198,15 +198,28 @@ const RewardClaims = () => {
                     <p>
                       {row.name} {row.lastname}
                     </p>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: "4px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: "#94a3b8",
+                      }}
+                    >
+                      {row.referral_code ||
+                        row.user_code ||
+                        row.userid ||
+                        row.user_id}
+                    </span>
                   </div>
 
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     <div className="rc-target">₹{row.target_amount}</div>
 
                     <span
-                      className={`statusBadge ${
-                        isClosed ? "rejected" : "approved"
-                      }`}
+                      className={`statusBadge ${isClosed ? "rejected" : "approved"
+                        }`}
                     >
                       {isClosed ? "Closed" : "Active"}
                     </span>
@@ -272,8 +285,8 @@ const RewardClaims = () => {
                     {isClosed
                       ? "Closed"
                       : savingKey === key
-                      ? "Saving..."
-                      : "Save"}
+                        ? "Saving..."
+                        : "Save"}
                   </button>
                 </div>
 
@@ -303,8 +316,8 @@ const RewardClaims = () => {
                               <td>
                                 {m.due_date
                                   ? new Date(m.due_date).toLocaleDateString(
-                                      "en-IN"
-                                    )
+                                    "en-IN"
+                                  )
                                   : "-"}
                               </td>
 
