@@ -282,17 +282,17 @@ const BannerImage = () => {
               </p>
             </div>
 
-            <div className="grid w-full max-w-xs grid-cols-2 gap-3 lg:max-w-sm">
+            <div className="flex justify-end gap-4">
               <StatCard
                 label="Approved Users"
                 value={users.length}
                 accent="from-sky-500 to-indigo-500"
               />
-              <StatCard
+              {/* <StatCard
                 label="Visible Cards"
                 value={filteredUsers.length}
                 accent="from-emerald-500 to-cyan-500"
-              />
+              /> */}
             </div>
           </div>
         </div>
