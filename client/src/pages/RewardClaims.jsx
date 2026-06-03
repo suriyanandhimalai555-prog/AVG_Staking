@@ -132,21 +132,32 @@ const RewardClaims = () => {
 
   // Memoized Search filter to match rows dynamically by Name, Lastname, or Reward
   const filteredRows = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return rows;
+  const query = searchTerm.trim().toLowerCase();
 
-    return rows.filter((row) => {
-      const firstName = (row.name || "").toLowerCase();
-      const lastName = (row.lastname || "").toLowerCase();
-      const rewardName = (row.reward || "").toLowerCase();
+  if (!query) return rows;
 
-      return (
-        firstName.includes(query) ||
-        lastName.includes(query) ||
-        rewardName.includes(query)
-      );
-    });
-  }, [rows, searchTerm]);
+  return rows.filter((row) => {
+    const firstName = String(row.name || "").toLowerCase();
+    const lastName = String(row.lastname || "").toLowerCase();
+    const rewardName = String(row.reward || "").toLowerCase();
+
+    // User Code / Referral Code
+    const userCode = String(
+      row.referral_code ||
+      row.user_code ||
+      row.userid ||
+      row.user_id ||
+      ""
+    ).toLowerCase();
+
+    return (
+      firstName.includes(query) ||
+      lastName.includes(query) ||
+      rewardName.includes(query) ||
+      userCode.includes(query)
+    );
+  });
+}, [rows, searchTerm]);
 
   return (
     <div className="rc-container">
