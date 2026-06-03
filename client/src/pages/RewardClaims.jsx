@@ -4,6 +4,7 @@ import axios from "axios";
 const RewardClaims = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // State added for search text string
   const [savingKey, setSavingKey] = useState("");
   const [monthSavingId, setMonthSavingId] = useState("");
   const [closingId, setClosingId] = useState("");
@@ -129,17 +130,51 @@ const RewardClaims = () => {
     }
   };
 
+  // Memoized Search filter to match rows dynamically by Name, Lastname, or Reward
+  const filteredRows = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return rows;
+
+    return rows.filter((row) => {
+      const firstName = (row.name || "").toLowerCase();
+      const lastName = (row.lastname || "").toLowerCase();
+      const rewardName = (row.reward || "").toLowerCase();
+
+      return (
+        firstName.includes(query) ||
+        lastName.includes(query) ||
+        rewardName.includes(query)
+      );
+    });
+  }, [rows, searchTerm]);
+
   return (
     <div className="rc-container">
-      <h2 className="rc-title">Reward Claims</h2>
+      {/* Header section with layout positioning for the search bar */}
+      <div className="rc-header-section" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "15px" }}>
+        <h2 className="rc-title" style={{ margin: 0 }}>Reward Claims</h2>
+        
+        <div className="rc-search-wrapper">
+          <input
+            type="text"
+            className="rc-input"
+            placeholder="Search user or reward..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: "250px", padding: "8px 12px" }}
+          />
+        </div>
+      </div>
 
       {loading ? (
         <p>Loading...</p>
-      ) : rows.length === 0 ? (
-        <p style={{ color: "#999" }}>No data available</p>
+      ) : filteredRows.length === 0 ? (
+        <p style={{ color: "#999" }}>
+          {rows.length === 0 ? "No data available" : "No matching records found"}
+        </p>
       ) : (
         <div className="rc-card-container">
-          {rows.map((row) => {
+          {filteredRows.map((row) => {
             const key = keyOf(row);
             const local = form[key] || {};
             const isClosed = row.claim_status === "closed";

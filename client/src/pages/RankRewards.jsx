@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import API from "../utils/api";
+import * as XLSX from "xlsx"; // Imported for true Excel .xlsx format download
 
 const formatDateOnly = (value) => {
   if (!value) return "-";
@@ -143,6 +144,42 @@ const RankRewards = () => {
 
     setShowModal(false);
     setSelectedReward(null);
+  };
+
+  // True Excel (.xlsx) Download Handler
+  const handleDownloadExcel = (statusType) => {
+    const dataToExport = rewardsData.filter(
+      (item) => item.status.toLowerCase() === statusType.toLowerCase()
+    );
+
+    if (dataToExport.length === 0) {
+      showPopupMessage(`No ${statusType} rewards data found to export.`);
+      return;
+    }
+
+    // Format headers and rows for Excel layout
+    const excelRows = dataToExport.map((item, idx) => ({
+      "S.No": idx + 1,
+      "Username": item.username,
+      "User Code": item.userCode,
+      "Phone No": item.phoneNo,
+      "Reward Details": item.reward,
+      "Achieved Date": item.achievedDate,
+      "Status": item.status.toUpperCase(),
+    }));
+
+    // Generate Excel worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(excelRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `${statusType.toUpperCase()} Rewards`);
+
+    // Auto-adjust column widths so data is clean and readable
+    const maxProps = [{ wch: 6 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 12 }];
+    worksheet["!cols"] = maxProps;
+
+    // Trigger true .xlsx file download
+    const fileName = `Rank_Rewards_${statusType}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
   };
 
   const filteredData = useMemo(() => {
@@ -331,6 +368,28 @@ const RankRewards = () => {
               <option value="pending">Pending</option>
               <option value="rejected">Rejected</option>
             </select>
+          </div>
+
+          {/* Excel Downloads Section */}
+          <div className="rr-excel-actions" style={{ display: "flex", gap: "10px" }}>
+            <button 
+              className="excel-btn  tx-manual-deposit-btn" 
+              onClick={() => handleDownloadExcel("pending")}
+            >
+              Download Pending Excel
+            </button>
+            <button 
+              className="excel-btn approved tx-manual-deposit-btn" 
+              onClick={() => handleDownloadExcel("approved")}
+            >
+              Download Approved Excel
+            </button>
+            <button 
+              className="excel-btn rejected tx-manual-deposit-btn" 
+              onClick={() => handleDownloadExcel("rejected")}
+            >
+              Download Rejected Excel
+            </button>
           </div>
         </div>
       </div>
