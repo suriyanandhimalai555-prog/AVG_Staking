@@ -202,3 +202,4 @@ const Hero = ({ onLoginClick }) => {
 };
 
 export default Hero;
+

@@ -56,6 +56,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Otp from "./pages/Otp";
 import ForgotPassword from "./pages/ForgotPassword";
+import BannerImage from "./pages/BannerImage";
 
 function App() {
   return (
@@ -97,6 +98,7 @@ function App() {
             <Route path="activeplans" element={<ActivePlans />} />
             <Route path="rewards" element={<RankRewards />} />
             <Route path="reward-claims" element={<RewardClaims />} />
+            <Route path="banner-image" element={<BannerImage />} />
 
             {/* Transaction */}
             <Route path="deposit" element={<DepositTransactions />} />

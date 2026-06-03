@@ -1,5 +1,6 @@
 import React from "react";
 import Hero from "../components/Hero";
+import ImageSlider from "../components/ImageSlider";
 import About from "../components/About";
 import Plan from "../components/plan";
 import Roadmap from "../components/Roadmap";
@@ -11,6 +12,10 @@ function Home() {
     <> 
       <section id="home">
         <Hero />
+      </section>
+
+      <section id="slider">
+        <ImageSlider />
       </section>
 
       <section id="about">

@@ -8,6 +8,7 @@ import withdrawRoutes from "./routes/withdrawRoutes.js";
 import levelRoutes from "./routes/levelRoutes.js";
 import levelUnlockRoutes from "./routes/levelUnlockRoutes.js";
 import rankRoutes from "./routes/rankRoutes.js";
+import bannerRoutes from "./routes/bannerRoutes.js";
 import "./cron/roiCron.js"
 
 const app = express();
@@ -28,6 +29,6 @@ app.use("/api/withdrawals", withdrawRoutes);
 app.use("/api/levels", levelRoutes);
 app.use("/api/level-unlock", levelUnlockRoutes);
 app.use("/api/ranks", rankRoutes);
-
+app.use("/api/banner-slides", bannerRoutes);
 
 export default app;
