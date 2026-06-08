@@ -3,7 +3,7 @@ import API from "../utils/api";
 
 const formatMoney = (value) => {
   const num = Number(value || 0);
-  return `₹${num.toLocaleString()}`;
+  return `₹${num.toLocaleString("en-IN")}`;
 };
 
 const getInitials = (name = "") => {
@@ -17,45 +17,44 @@ const getInitials = (name = "") => {
 };
 
 const DetailRow = ({ label, value }) => (
-  <div className="rounded-2xl border border-slate-700/70 bg-slate-950/40 px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.16)]">
-    <p className="text-[11px] uppercase tracking-[0.2em] text-sky-200/60">
+  <div className="rounded-xl border border-white/[0.06] bg-slate-900/40 px-4 py-3 shadow-inner">
+    <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-amber-400/70">
       {label}
     </p>
-    <p className="mt-1 break-words text-sm font-semibold text-white">{value}</p>
+    <p className="mt-1 break-words text-sm font-medium text-slate-200">{value}</p>
   </div>
 );
 
 const StatCard = ({ label, value, accent }) => (
-  <div className="rounded-[24px] border border-slate-700/70 bg-slate-950/40 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.18)] backdrop-blur">
-    <div className="flex items-center justify-between gap-3">
+  <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-slate-900/80 to-slate-950/80 p-5 shadow-2xl backdrop-blur-xl">
+    <div className="flex items-center justify-between gap-6">
       <div>
-        <p className="text-[11px] uppercase tracking-[0.2em] text-sky-100/55">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400">
           {label}
         </p>
-        <p className="mt-2 text-3xl font-bold text-white">{value}</p>
+        <p className="mt-1 text-3xl font-light tracking-tight text-white">{value}</p>
       </div>
-      <div
-        className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${accent} shadow-[0_14px_28px_rgba(0,0,0,0.22)]`}
-      />
+      <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${accent} opacity-90 shadow-lg`} />
     </div>
   </div>
 );
 
 const StatusBadge = ({ hasImage }) => (
   <span
-    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+    className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-[11px] font-medium tracking-wide ${
       hasImage
-        ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-        : "border-amber-400/30 bg-amber-400/10 text-amber-200"
+        ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
+        : "border-amber-500/20 bg-amber-500/5 text-amber-400"
     }`}
   >
-    {hasImage ? "Uploaded" : "Pending"}
+    <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${hasImage ? "bg-emerald-400" : "bg-amber-400"}`} />
+    {hasImage ? "Verified Asset" : "Pending Action"}
   </span>
 );
 
 const ModalShell = ({ title, subtitle, onClose, children, maxWidth = "max-w-6xl" }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-md sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/80 p-4 backdrop-blur-md">
       <button
         type="button"
         aria-label="Close modal"
@@ -63,17 +62,17 @@ const ModalShell = ({ title, subtitle, onClose, children, maxWidth = "max-w-6xl"
         className="absolute inset-0 cursor-default"
       />
       <div
-        className={`relative w-full ${maxWidth} overflow-hidden rounded-[30px] border border-slate-700/70 bg-[#081733] shadow-[0_30px_100px_rgba(0,0,0,0.6)]`}
+        className={`relative w-full ${maxWidth} overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090d16] shadow-[0_24px_70px_rgba(0,0,0,0.7)]`}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.16),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.12),transparent_34%)]" />
-        <div className="relative flex max-h-[92vh] flex-col">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-700/70 px-4 py-4 sm:px-6">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.05),transparent_45%)]" />
+        <div className="relative flex max-h-[90vh] flex-col">
+          <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-6 py-5">
             <div className="min-w-0">
-              <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+              <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
                 {title}
               </h2>
               {subtitle ? (
-                <p className="mt-1 text-sm leading-6 text-sky-100/70">
+                <p className="mt-1 text-xs text-slate-400">
                   {subtitle}
                 </p>
               ) : null}
@@ -81,7 +80,7 @@ const ModalShell = ({ title, subtitle, onClose, children, maxWidth = "max-w-6xl"
 
             <button
               onClick={onClose}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-700 bg-white/5 text-2xl leading-none text-white transition hover:bg-white/10"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/5 text-xl font-light text-slate-400 transition hover:bg-white/10 hover:text-white"
               aria-label="Close modal"
               type="button"
             >
@@ -91,10 +90,10 @@ const ModalShell = ({ title, subtitle, onClose, children, maxWidth = "max-w-6xl"
 
           <div
             className="
-              relative overflow-y-auto
+              relative overflow-y-auto p-6
               [scrollbar-width:none]
               [-ms-overflow-style:none]
-              [&::-webkit-scrollbar]:hidden
+              `[&::-webkit-scrollbar]:hidden`
             "
           >
             {children}
@@ -217,7 +216,7 @@ const BannerImage = () => {
     if (!selectedUser) return;
 
     if (!selectedFile) {
-      setMessage("Please select an image first.");
+      setMessage("Please select an image asset.");
       return;
     }
 
@@ -243,12 +242,12 @@ const BannerImage = () => {
         },
       });
 
-      setMessage("Banner image uploaded successfully.");
+      setMessage("Asset database synchronized successfully.");
       closeUploadModal();
       await fetchUsers();
     } catch (error) {
       console.error("Banner upload error:", error);
-      setMessage(error?.response?.data?.message || "Upload failed. Please try again.");
+      setMessage(error?.response?.data?.message || "Synchronization failed.");
     } finally {
       setUploadingId(null);
     }
@@ -262,151 +261,137 @@ const BannerImage = () => {
   };
 
   return (
-    <div className="min-h-screen  px-3 py-4 text-white sm:px-4 sm:py-6 lg:px-6">
-      <div className="mx-auto max-w-7xl space-y-5">
-        <div className="relative overflow-hidden rounded-[30px] border border-slate-700/70 bg-gradient-to-br from-[#0a1b3d] via-[#0d2551] to-[#133a86] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)] sm:p-6 lg:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.11),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.14),transparent_28%)]" />
-          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
-              <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold tracking-[0.18em] text-white/90 backdrop-blur">
-                BANNER IMAGE MANAGER
+    <div className="min-h-screen bg-[#030712] px-4 py-6 text-slate-100 sm:px-6 lg:px-8 rounded-2xl shadow-2xl">
+      <div className="mx-auto max-w-7xl space-y-6">
+        
+        {/* Header Block */}
+        <div className="relative overflow-hidden rounded-2xl border border-white/[0.05] bg-[#090f1c] p-6 shadow-2xl sm:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.04),transparent_35%)]" />
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <span className="inline-flex rounded-md border border-amber-500/10 bg-amber-500/5 px-3 py-1 text-[10px] font-semibold tracking-[0.25em] text-amber-400">
+                SYSTEM CONSOLE
               </span>
-
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                Approved Reward Cards
+              <h1 className="mt-3 text-2xl font-light tracking-tight text-white sm:text-3xl">
+                Premium Reward Inventory
               </h1>
-
-              <p className="mt-3 max-w-xl text-sm leading-6 text-sky-100/80 sm:text-base">
-                Upload banner images from a clean popup, preview them clearly,
-                and open the saved banner later from each card.
+              <p className="mt-2 max-w-xl text-xs leading-relaxed text-slate-400">
+                Manage, audit, and provision executive asset banners for verified accounts.
               </p>
             </div>
 
-            <div className="flex justify-end gap-4">
+            <div className="flex gap-4">
               <StatCard
-                label="Approved Users"
+                label="Premium Profiles"
                 value={users.length}
-                accent="from-sky-500 to-indigo-500"
+                accent="from-amber-500 to-yellow-600"
               />
-              {/* <StatCard
-                label="Visible Cards"
-                value={filteredUsers.length}
-                accent="from-emerald-500 to-cyan-500"
-              /> */}
             </div>
           </div>
         </div>
 
-        <div className="rounded-[26px] border border-slate-700/70 bg-[#091a38] p-4 shadow-[0_12px_35px_rgba(0,0,0,0.2)] sm:p-5">
-          <label className="mb-2 block text-sm font-medium text-sky-100/80">
-            Search
-          </label>
+        {/* Search Engine Layer */}
+        <div className="rounded-xl border border-white/[0.05] bg-[#090f1c] p-4 shadow-xl">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search user, reward, phone, user code..."
+              placeholder="Filter by account signature, premium asset target, or phone identifier..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-2xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-white outline-none transition placeholder:text-sky-100/35 focus:border-sky-400/60 focus:ring-2 focus:ring-sky-400/15"
+              className="w-full rounded-lg border border-white/[0.08] bg-slate-950/50 px-4 py-2.5 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-amber-500/30 focus:ring-1 focus:ring-amber-500/10"
             />
-            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sky-100/35">
-              ⌕
+            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-600 text-lg">
+              &reg;
             </div>
           </div>
         </div>
 
+        {/* Notification Stream */}
         {message ? (
-          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+          <div className="rounded-lg border border-emerald-500/10 bg-emerald-500/[0.02] px-4 py-3 text-xs font-medium text-emerald-400 shadow-lg animate-fade-in">
             {message}
           </div>
         ) : null}
 
+        {/* Grid System */}
         <div>
           {loading ? (
-            <div className="rounded-[26px] border border-slate-700/70 bg-[#091a38] p-10 text-center text-white shadow-[0_12px_35px_rgba(0,0,0,0.2)]">
-              Loading...
+            <div className="rounded-xl border border-white/[0.05] bg-[#090f1c] p-12 text-center text-xs font-medium tracking-widest text-slate-500">
+              SYNCHRONIZING REWARD REGISTRY...
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="rounded-[26px] border border-slate-700/70 bg-[#091a38] p-10 text-center text-white shadow-[0_12px_35px_rgba(0,0,0,0.2)]">
-              No approved users found
+            <div className="rounded-xl border border-white/[0.05] bg-[#090f1c] p-12 text-center text-xs font-medium tracking-widest text-slate-500">
+              NO COMPLIANT RECORDS FOUND
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {filteredUsers.map((user) => {
                 const hasImage = Boolean(user.image_url);
 
                 return (
                   <div
                     key={user.userId}
-                    className="group rounded-[28px] border border-slate-700/70 bg-[#091a38] p-4 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-400/30 hover:shadow-[0_24px_55px_rgba(2,132,199,0.15)] sm:p-5"
+                    className="group relative flex flex-col justify-between rounded-xl border border-white/[0.05] bg-[#090f1c] p-5 shadow-xl transition-all duration-300 hover:border-amber-500/20 hover:shadow-[0_12px_30px_rgba(245,158,11,0.03)]"
                   >
-                    <div className="h-1 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-cyan-400 opacity-70" />
-
-                    <div className="mt-4 flex items-center gap-4">
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-500 text-lg font-bold text-white shadow-[0_12px_24px_rgba(37,99,235,0.35)]">
-                        {getInitials(user.username)}
+                    <div>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-800 to-slate-900 text-xs font-semibold text-amber-400 border border-white/[0.05]">
+                            {getInitials(user.username)}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-medium text-slate-200 group-hover:text-white transition-colors">
+                              {user.username || "-"}
+                            </h3>
+                            <p className="truncate text-[11px] font-mono tracking-wider text-slate-500">
+                              {user.userCode || "-"}
+                            </p>
+                          </div>
+                        </div>
+                        <StatusBadge hasImage={hasImage} />
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-lg font-semibold text-white">
-                          {user.username || "-"}
-                        </h3>
-                        <p className="truncate text-sm text-sky-100/60">
-                          {user.userCode || "-"}
+                      <div className="mt-4 rounded-lg border border-white/[0.03] bg-slate-950/30 p-3.5">
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-amber-400/60">
+                          Allocated Luxury Tier
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-slate-300 truncate">
+                          {user.reward || "-"}
                         </p>
                       </div>
 
-                      <StatusBadge hasImage={hasImage} />
-                    </div>
-
-                    <div className="mt-4 rounded-2xl border border-slate-700/70 bg-slate-950/35 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-sky-100/55">
-                        Reward
-                      </p>
-                      <p className="mt-2 text-[15px] font-semibold leading-6 text-white">
-                        {user.reward || "-"}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 gap-3 text-sm">
-                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 px-4 py-3">
-                        <span className="text-sky-100/60">Phone</span>
-                        <span className="truncate font-medium text-white">
-                          {user.phone || "-"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 px-4 py-3">
-                        <span className="text-sky-100/60">Target</span>
-                        <span className="font-medium text-white">
-                          {formatMoney(user.target_amount)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/35 px-4 py-3">
-                        <span className="text-sky-100/60">Progress</span>
-                        <span className="font-medium text-white">
-                          {formatMoney(user.progress)}
-                        </span>
+                      <div className="mt-3 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.02] bg-slate-950/20 px-3 py-2">
+                          <span className="text-slate-500 text-[11px]">Phone Target</span>
+                          <span className="truncate font-medium text-slate-300">{user.phone || "-"}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.02] bg-slate-950/20 px-3 py-2">
+                          <span className="text-slate-500 text-[11px]">Escrow Target</span>
+                          <span className="font-medium text-slate-300">{formatMoney(user.target_amount)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.02] bg-slate-950/20 px-3 py-2">
+                          <span className="text-slate-500 text-[11px]">Cleared Progress</span>
+                          <span className="font-semibold text-amber-400">{formatMoney(user.progress)}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <div className="mt-5 flex gap-2">
                       <button
                         onClick={() => openUploadModal(user)}
-                        className="flex-1 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(37,99,235,0.28)] transition hover:brightness-110"
+                        className="flex-1 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-500 px-3 py-2 text-xs font-medium text-white shadow-md transition hover:brightness-110 active:scale-[0.98]"
                         type="button"
                       >
-                        {hasImage ? "Update Image" : "Upload Image"}
+                        {hasImage ? "Replace Asset" : "Provision Asset"}
                       </button>
 
                       {hasImage && (
                         <button
                           onClick={() => openViewModal(user)}
-                          className="rounded-2xl border border-slate-700 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 sm:min-w-[88px]"
+                          className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/[0.06] active:scale-[0.98]"
                           type="button"
                         >
-                          View
+                          Audit
                         </button>
                       )}
                     </div>
@@ -418,111 +403,60 @@ const BannerImage = () => {
         </div>
       </div>
 
+      {/* Upload Interface Modal */}
       {uploadModalOpen && selectedUser && (
         <div onMouseDown={handleBackdropClose}>
           <ModalShell
-            title="Upload Banner Image"
-            subtitle="Add or replace the banner image for this approved reward card."
+            title="Provision Asset Banner"
+            subtitle="Securely bind a premium wide-aspect graphic to this audited profile ledger."
             onClose={closeUploadModal}
-            maxWidth="max-w-6xl"
+            maxWidth="max-w-5xl"
           >
-            <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[1fr_1.02fr] lg:gap-6">
+            <div className="grid gap-6 lg:grid-cols-2">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <DetailRow label="Username" value={selectedUser.username || "-"} />
-                  <DetailRow label="User Code" value={selectedUser.userCode || "-"} />
-                  <DetailRow label="Phone" value={selectedUser.phone || "-"} />
-                  <DetailRow label="Reward" value={selectedUser.reward || "-"} />
-                  <DetailRow
-                    label="Target"
-                    value={formatMoney(selectedUser.target_amount)}
-                  />
-                  <DetailRow
-                    label="Progress"
-                    value={formatMoney(selectedUser.progress)}
-                  />
-                  <DetailRow
-                    label="Achieved Date"
-                    value={selectedUser.achieved_date || "-"}
-                  />
-                  <DetailRow
-                    label="Status"
-                    value={selectedUser.image_url ? "Already uploaded" : "New upload"}
-                  />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <DetailRow label="Client Name" value={selectedUser.username || "-"} />
+                  <DetailRow label="System Hash" value={selectedUser.userCode || "-"} />
+                  <DetailRow label="Target Limit" value={formatMoney(selectedUser.target_amount)} />
+                  <DetailRow label="Current Standing" value={formatMoney(selectedUser.progress)} />
                 </div>
 
-                <div className="rounded-3xl border border-slate-700/70 bg-slate-950/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-sky-100/60">
-                    Select Image
+                <div className="rounded-xl border border-white/[0.05] bg-slate-950/40 p-4">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">
+                    File System Input
                   </p>
-
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    className="mt-3 block w-full cursor-pointer rounded-2xl border border-slate-700 bg-[#071629] px-3 py-3 text-sm text-white outline-none file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-gradient-to-r file:from-sky-500 file:to-indigo-500 file:px-4 file:py-2 file:text-white hover:file:brightness-110"
+                    className="mt-3 block w-full cursor-pointer rounded-lg border border-white/[0.08] bg-slate-950/80 p-2 text-xs text-slate-400 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-white/20"
                   />
-                </div>
-
-                <div className="rounded-3xl border border-slate-700/70 bg-slate-950/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-sky-100/60">
-                    Note
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-white/82">
-                    The uploaded image will be linked to this approved reward card.
-                    After saving, the View button stays available on the card.
-                  </p>
                 </div>
 
                 <button
                   onClick={handleUpload}
                   disabled={uploadingId === selectedUser.userId}
-                  className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 px-4 py-3.5 font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.28)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 py-2.5 text-xs font-medium text-slate-950 transition hover:brightness-110 disabled:opacity-40"
                   type="button"
                 >
-                  {uploadingId === selectedUser.userId
-                    ? "Uploading..."
-                    : selectedUser.image_url
-                    ? "Update Image"
-                    : "Upload Image"}
+                  {uploadingId === selectedUser.userId ? "Synchronizing Asset..." : "Commit Asset Changes"}
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div className="rounded-3xl border border-slate-700/70 bg-slate-950/35 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-sky-100/60">
-                      Preview
-                    </p>
-                    <StatusBadge hasImage={Boolean(selectedUser.image_url)} />
-                  </div>
-
-                  <div className="mt-3 overflow-hidden rounded-3xl border border-slate-700/70 bg-black">
+              <div>
+                <div className="rounded-xl border border-white/[0.05] bg-slate-950/40 p-4 h-full flex flex-col justify-between">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400 mb-3">
+                    Active Render Canvas
+                  </p>
+                  <div className="flex-1 min-h-[220px] rounded-lg border border-white/[0.04] bg-black/60 overflow-hidden flex items-center justify-center">
                     {uploadPreview ? (
-                      <img
-                        src={uploadPreview}
-                        alt="Upload preview"
-                        className="h-[280px] w-full object-cover sm:h-[340px] lg:h-[470px]"
-                      />
+                      <img src={uploadPreview} alt="Staging area" className="h-full w-full object-cover" />
                     ) : selectedUser.image_url ? (
-                      <img
-                        src={selectedUser.image_url}
-                        alt={selectedUser.username || "Selected user"}
-                        className="h-[280px] w-full object-cover sm:h-[340px] lg:h-[470px]"
-                      />
+                      <img src={selectedUser.image_url} alt="Current entry" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-[280px] items-center justify-center px-4 text-center text-sm text-sky-100/60 sm:h-[340px] lg:h-[470px]">
-                        No image selected yet
-                      </div>
+                      <span className="text-xs text-slate-600 italic">No asset staged for rendering</span>
                     )}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                  <DetailRow label="Username" value={selectedUser.username || "-"} />
-                  <DetailRow label="User Code" value={selectedUser.userCode || "-"} />
-                  <DetailRow label="Phone" value={selectedUser.phone || "-"} />
-                  <DetailRow label="Reward" value={selectedUser.reward || "-"} />
                 </div>
               </div>
             </div>
@@ -530,64 +464,48 @@ const BannerImage = () => {
         </div>
       )}
 
+      {/* Audit/View Modal */}
       {viewModalOpen && viewUser && (
         <div onMouseDown={handleBackdropClose}>
           <ModalShell
-            title="View Banner"
-            subtitle="Preview of the uploaded reward banner image and related details."
+            title="Premium Asset Preview"
+            subtitle="System telemetry and raw visual verification metrics."
             onClose={closeViewModal}
-            maxWidth="max-w-7xl"
+            maxWidth="max-w-5xl"
           >
-            <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[1.18fr_0.82fr] lg:gap-6">
-              <div className="overflow-hidden rounded-[26px] border border-slate-700/70 bg-black shadow-[0_20px_50px_rgba(0,0,0,0.25)]">
+            <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+              <div className="rounded-xl border border-white/[0.05] bg-black/60 overflow-hidden flex items-center justify-center p-2 min-h-[300px]">
                 {viewUser.image_url ? (
                   <img
                     src={viewUser.image_url}
-                    alt={viewUser.username || "Uploaded banner"}
-                    className="h-[360px] w-full bg-black object-contain sm:h-[540px]"
+                    alt="Audited live asset"
+                    className="max-h-[450px] w-full rounded-md object-contain bg-slate-950"
                   />
                 ) : (
-                  <div className="flex h-[360px] items-center justify-center text-sky-100/60 sm:h-[540px]">
-                    No image available
-                  </div>
+                  <span className="text-xs text-slate-600">Asset pointer resolved to null</span>
                 )}
               </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                  <DetailRow label="Username" value={viewUser.username || "-"} />
-                  <DetailRow label="User Code" value={viewUser.userCode || "-"} />
-                  <DetailRow label="Phone" value={viewUser.phone || "-"} />
-                  <DetailRow label="Reward" value={viewUser.reward || "-"} />
-                  <DetailRow
-                    label="Target"
-                    value={formatMoney(viewUser.target_amount)}
-                  />
-                  <DetailRow
-                    label="Progress"
-                    value={formatMoney(viewUser.progress)}
-                  />
-                  <DetailRow
-                    label="Achieved Date"
-                    value={viewUser.achieved_date || "-"}
-                  />
-                </div>
-
-                <div className="rounded-3xl border border-slate-700/70 bg-slate-950/35 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-sky-100/60">
-                    Banner URL
-                  </p>
-                  <p className="mt-2 break-all text-sm leading-6 text-white/85">
-                    {viewUser.image_url || "-"}
-                  </p>
+              <div className="space-y-4 flex flex-col justify-between">
+                <div className="space-y-2.5">
+                  <DetailRow label="Profile Owner" value={viewUser.username || "-"} />
+                  <DetailRow label="Assigned Tier Reward" value={viewUser.reward || "-"} />
+                  <div className="rounded-xl border border-white/[0.05] bg-slate-950/40 p-3.5">
+                    <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-slate-500">
+                      Resolved Asset Link
+                    </p>
+                    <p className="mt-1 break-all font-mono text-[11px] text-slate-400 select-all">
+                      {viewUser.image_url || "-"}
+                    </p>
+                  </div>
                 </div>
 
                 <button
                   onClick={closeViewModal}
-                  className="w-full rounded-2xl border border-slate-700 bg-white/8 px-4 py-3 font-semibold text-white transition hover:bg-white/12"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/[0.06]"
                   type="button"
                 >
-                  Close Preview
+                  Dismiss Telemetry
                 </button>
               </div>
             </div>

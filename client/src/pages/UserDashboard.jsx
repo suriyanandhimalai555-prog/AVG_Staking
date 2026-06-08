@@ -13,6 +13,7 @@ import {
   FaArrowUp,
   FaUsers,
   FaBolt,
+  FaTrophy,
 } from "react-icons/fa";
 
 const StatCard = ({ title, value, icon }) => {
@@ -24,6 +25,253 @@ const StatCard = ({ title, value, icon }) => {
       </div>
       <div className="card-icon">{icon}</div>
     </div>
+  );
+};
+
+const AvgAchieversCard = () => {
+  const [slides, setSlides] = useState([]);
+  const [loadingSlides, setLoadingSlides] = useState(true);
+
+  useEffect(() => {
+    const fetchSlides = async () => {
+      try {
+        setLoadingSlides(true);
+        const res = await axios.get(
+          `${import.meta.env.VITE_APP_BASE_URL}/api/banner-slides/public`
+        );
+        setSlides(res.data || []);
+      } catch (error) {
+        console.error("Hero banner fetch error:", error);
+        setSlides([]);
+      } finally {
+        setLoadingSlides(false);
+      }
+    };
+
+    fetchSlides();
+  }, []);
+
+  if (loadingSlides) {
+    return (
+      <div className="mb-6 flex h-[300px] items-center justify-center text-white">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!slides.length) return null;
+
+  return (
+    <section className="relative overflow-hidden px-0 py-0">
+      <style>{`
+        @keyframes avgScrollLeft {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2 text-white">
+        <span className="text-yellow-500"><FaTrophy /></span>
+        <span>AVG Achievers</span>  
+      </h1>
+
+      <div className="overflow-hidden">
+        <div
+          className="flex gap-4 md:gap-6"
+          style={{
+            width: "max-content",
+            animation: "avgScrollLeft 15s linear infinite",
+          }}
+        >
+          {[...slides, ...slides].map((item, index) => (
+            <div
+              key={`top-${index}`}
+              className="
+                flex
+                w-[92vw]
+                sm:w-[560px]
+                lg:w-[650px]
+                overflow-hidden
+                rounded-[20px]
+                lg:rounded-[28px]
+                bg-white
+                border
+                border-slate-100
+                shadow-[0_15px_40px_rgba(0,0,0,0.12)]
+                transition-all
+                duration-500
+                hover:-translate-y-2
+                hover:shadow-[0_25px_60px_rgba(0,0,0,0.18)]
+              "
+            >
+              <div
+                className="
+                  relative
+                  w-[120px]
+                  sm:w-[180px]
+                  lg:w-[220px]
+                  flex-shrink-0
+                "
+              >
+                <img
+                  src={item.imageUrl}
+                  alt={item.username}
+                  className="
+                    h-full
+                    min-h-[180px]
+                    sm:min-h-[220px]
+                    w-full
+                    object-cover
+                  "
+                />
+
+                <div
+                  className="
+                    absolute
+                    left-2
+                    top-2
+                    rounded-full
+                    bg-yellow-500
+                    px-2
+                    py-1
+                    text-[10px]
+                    sm:text-xs
+                    font-bold
+                    text-white
+                  "
+                >
+                  🏆 ACHIEVER
+                </div>
+              </div>
+
+              <div
+                className="
+                  flex
+                  flex-1
+                  flex-col
+                  justify-center
+                  p-3
+                  sm:p-4
+                  lg:p-5
+                "
+              >
+                <span
+                  className="
+                    w-fit
+                    rounded-full
+                    bg-green-100
+                    px-2
+                    py-1
+                    text-[10px]
+                    sm:text-xs
+                    font-semibold
+                    text-green-700
+                  "
+                >
+                  Target Completed
+                </span>
+
+                <h3
+                  className="
+                    mt-2
+                    text-lg
+                    sm:text-xl
+                    lg:text-2xl
+                    font-bold
+                    text-slate-900
+                    truncate
+                  "
+                >
+                  {item.username}
+                </h3>
+
+                <p className="text-xs sm:text-sm text-slate-500">
+                  AVG Elite Achiever
+                </p>
+
+                <div
+                  className="
+                    mt-3
+                    grid
+                    grid-cols-2
+                    gap-2
+                    lg:gap-3
+                  "
+                >
+                  <div
+                    className="
+                      rounded-lg
+                      lg:rounded-xl
+                      bg-slate-100
+                      p-2
+                      lg:p-3
+                    "
+                  >
+                    <p className="text-[10px] sm:text-xs text-slate-500">
+                      Target
+                    </p>
+
+                    <h4 className="mt-1 text-xs sm:text-sm lg:text-base font-bold text-slate-900">
+                      ${Number(item.target_amount || 0).toLocaleString()}
+                    </h4>
+                  </div>
+
+                  <div
+                    className="
+                      rounded-lg
+                      lg:rounded-xl
+                      bg-green-50
+                      p-2
+                      lg:p-3
+                    "
+                  >
+                    <p className="text-[10px] sm:text-xs text-green-600">
+                      Achieved
+                    </p>
+
+                    <h4 className="mt-1 text-xs sm:text-sm lg:text-base font-bold text-green-700">
+                      ${Number(item.progress || 0).toLocaleString()}
+                    </h4>
+                  </div>
+                </div>
+
+                <div
+                  className="
+                    mt-2
+                    rounded-lg
+                    lg:rounded-xl
+                    bg-amber-50
+                    p-2
+                    lg:p-3
+                  "
+                >
+                  <p className="text-[10px] sm:text-xs text-amber-600">
+                    Reward Earned
+                  </p>
+
+                  <h4
+                    className="
+                      mt-1
+                      text-xs
+                      sm:text-sm
+                      lg:text-base
+                      font-bold
+                      text-slate-900
+                      line-clamp-2
+                    "
+                  >
+                    {item.reward}
+                  </h4>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 };
 
@@ -185,6 +433,8 @@ const UserDashboard = () => {
         <Topbar isOpen={isOpen} setIsOpen={setIsOpen} />
 
         <div className="content">
+          <AvgAchieversCard />
+
           <h2 className="page-title">Dashboard</h2>
           <span>Overview of your account activity</span>
 

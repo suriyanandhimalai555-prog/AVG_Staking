@@ -16,6 +16,7 @@ const LevelUnlockConfig = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [activeDropdownId, setActiveDropdownId] = useState(null);
 
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
@@ -64,6 +65,11 @@ const LevelUnlockConfig = () => {
 
   useEffect(() => {
     fetchData();
+
+    // Close action dropdowns on clicking anywhere outside
+    const closeDropdown = () => setActiveDropdownId(null);
+    window.addEventListener("click", closeDropdown);
+    return () => window.removeEventListener("click", closeDropdown);
   }, []);
 
   // ✅ TOGGLE
@@ -164,67 +170,135 @@ const LevelUnlockConfig = () => {
   const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
-    <div className="cf-main-content">
-      <div className="cf-page-header">
-        <div>
-          <h1 className="cf-page-title">Level Unlock Configuration</h1>
-          <p className="cf-page-subtitle">Manage level unlock requirements</p>
-        </div>
+    <div className="min-h-screen bg-[#0b0f19] p-6 text-slate-100 antialiased selection:bg-purple-500 selection:text-white rounded-2xl shadow-2xl">
+      
+      {/* Top Header Panel Card */}
+      <div className="mb-6 rounded-2xl border border-slate-800/60 bg-[#111625] p-6 shadow-xl backdrop-blur-md">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔓</span>
+              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+                Level Unlock Configuration
+              </h1>
+            </div>
+            <p className="mt-1 text-sm text-slate-400">
+              Manage level unlocking conditions and minimum direct staking targets
+            </p>
+          </div>
 
-        <button className="tx-manual-deposit-btn" onClick={openAdd}>
-          Add Level Config
-        </button>
-      </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {/* Search Input matching exact style */}
+            <div className="relative min-w-[260px]">
+              <input
+                type="text"
+                placeholder="Search by level or staking..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full rounded-lg border border-slate-800 bg-[#0a0d16] py-2 pl-4 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none transition-all focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20"
+              />
+            </div>
 
-      <div className="cf-table-container">
-        <div className="cf-table-header">
-          <h2 className="cf-table-title">Level Unlock Configuration</h2>
-          <div className="cf-search-box">
-            <input
-              type="text"
-              placeholder="Search by level or staking..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <button 
+              className="inline-flex items-center justify-center rounded-lg bg-[#8b5cf6] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:bg-[#7c3aed] active:scale-[0.98]"
+              onClick={openAdd}
+            >
+              + Add Level Config
+            </button>
           </div>
         </div>
+      </div>
 
-        <div className="cf-table-responsive">
-          <table className="cf-data-table">
+      {/* Primary Table Ledger Card */}
+      <div className="rounded-2xl border border-slate-800/60 bg-[#111625] shadow-xl overflow-hidden">
+        <div className="border-b border-slate-800/60 bg-[#131a2e]/40 px-6 py-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Deposit Inflow Queue
+          </h2>
+        </div>
+
+        {/* Scrollable Responsive Wrapper */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr>
-                <th>S.NO</th>
-                <th>LEVEL</th>
-                <th>DIRECT STAKING</th>
-                <th>STATUS</th>
-                <th>CREATED AT</th>
-                <th>ACTIONS</th>
+              <tr className="border-b border-slate-800/60 bg-[#0d1220]/50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="px-6 py-4">Index</th>
+                <th className="px-6 py-4">Level</th>
+                {/* <th className="px-6 py-4 text-purple-400">Plan Cluster</th> */}
+                <th className="px-6 py-4">Direct Staking</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Created At</th>
+                <th className="px-6 py-4 text-right">Operations</th>
               </tr>
             </thead>
-            <tbody>
-              {currentItems.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.sno}</td>
-                  <td>Level {item.level}</td>
-                  <td>{item.directStaking}</td>
-                  <td>
+            <tbody className="divide-y divide-slate-800/40 text-sm">
+              {currentItems.map((item, index) => (
+                <tr key={item.id} className="transition-colors duration-150 hover:bg-[#161d30]/40">
+                  {/* Padded custom Index design format */}
+                  <td className="whitespace-nowrap px-6 py-4.5 font-mono text-xs text-slate-500">
+                    {String(indexOfFirstItem + index + 1).padStart(2, '0')}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4.5 font-bold text-slate-200">
+                    Level {item.level}
+                  </td>
+                  {/* <td className="whitespace-nowrap px-6 py-4.5 font-bold text-purple-400">
+                    AVG Super
+                  </td> */}
+                  <td className="whitespace-nowrap px-6 py-4.5 font-mono font-bold text-[#10b981]">
+                    {item.directStaking}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4.5">
                     <button
-                      className={`cf-toggle-btn ${item.status ? "cf-active" : "cf-inactive"
-                        }`}
                       onClick={() => toggleStatus(item)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        item.status ? "bg-purple-600" : "bg-slate-700"
+                      }`}
                     >
-                      <span className="cf-toggle-slider" />
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          item.status ? "translate-x-4" : "translate-x-0"
+                        }`}
+                      />
                     </button>
                   </td>
-                  <td>{item.createdAt}</td>
-                  <td>
-                    <div className="cf-actions-dropdown">
-                      <button className="cf-action-btn">⋮</button>
-                      <div className="cf-actions-menu">
-                        <button onClick={() => handleView(item)}>👁️ View</button>
-                        <button onClick={() => handleEdit(item)}>✏️ Edit</button>
-                        <button onClick={() => handleDelete(item)}>🗑️ Delete</button>
-                      </div>
+                  <td className="whitespace-nowrap px-6 py-4.5 font-mono text-xs text-slate-400">
+                    {item.createdAt || "-"}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4.5 text-right text-slate-400">
+                    <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        onClick={() => setActiveDropdownId(activeDropdownId === item.id ? null : item.id)}
+                        className="rounded p-1 hover:bg-slate-800 hover:text-white transition-colors"
+                      >
+                        <span className="text-lg leading-none block px-1">⋮</span>
+                      </button>
+
+                      {/* Floating Operations Dropdown Menu */}
+                      {activeDropdownId === item.id && (
+                        <div className="absolute right-0 mt-2 w-36 origin-top-right rounded-lg border border-slate-800 bg-[#161d30] p-1 shadow-xl ring-1 ring-black ring-opacity-5 z-20">
+                          <button
+                            onClick={() => { handleView(item); setActiveDropdownId(null); }}
+                            className="flex w-full items-center px-3 py-2 text-xs rounded-md text-slate-300 hover:bg-slate-800 hover:text-white"
+                          >
+                            👁️ <span className="ml-2">View</span>
+                          </button>
+                          <button
+                            onClick={() => { handleEdit(item); setActiveDropdownId(null); }}
+                            className="flex w-full items-center px-3 py-2 text-xs rounded-md text-slate-300 hover:bg-slate-800 hover:text-white"
+                          >
+                            ✏️ <span className="ml-2">Edit</span>
+                          </button>
+                          <button
+                            onClick={() => { handleDelete(item); setActiveDropdownId(null); }}
+                            className="flex w-full items-center px-3 py-2 text-xs rounded-md text-red-400 hover:bg-red-500/10"
+                          >
+                            🗑️ <span className="ml-2">Delete</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -232,134 +306,222 @@ const LevelUnlockConfig = () => {
 
               {currentItems.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="cf-no-data">
-                    No data found
+                  <td colSpan="7" className="px-6 py-12 text-center text-sm text-slate-500">
+                    No configurations found
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div className="cf-table-footer">
-        <div className="cf-rows-selector">
-          <span>Rows:</span>
-          <select value={rowsPerPage} onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-          </select>
-          <span className="cf-rows-info">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filtered.length)} of {filtered.length}</span>
-        </div>
+        {/* Dynamic Pagination & Info Footer */}
+        <div className="flex flex-col gap-4 border-t border-slate-800/60 bg-[#0d1220]/30 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span>Rows:</span>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="rounded border border-slate-800 bg-[#0a0d16] px-2 py-1 text-slate-300 outline-none focus:border-purple-500/50"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+            </select>
+            <span className="ml-2 font-mono">
+              {filtered.length === 0
+                ? "0-0 of 0"
+                : `${indexOfFirstItem + 1}-${Math.min(indexOfLastItem, filtered.length)} of ${filtered.length}`}
+            </span>
+          </div>
 
-        <div className="cf-pagination">
-          <button className="cf-page-btn" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</button>
-          {[...Array(totalPages)].map((_, i) => (
-            <button key={i} className={`cf-page-btn ${currentPage === i + 1 ? "cf-active" : ""}`} onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-          ))}
-          <button className="cf-page-btn" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</button>
-        </div>
-      </div>
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="rounded-lg border border-slate-800 bg-[#111625] px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              Previous
+            </button>
 
-      {/* MODAL */}
-      {showModal && (
-        <div className="cf-modal-overlay">
-          <div className="cf-modal">
-            <div className="cf-modal-header">
-              <h3>
-                {modalType === "add"
-                  ? "Add Configuration"
-                  : modalType === "edit"
-                    ? "Edit Configuration"
-                    : modalType === "delete"
-                      ? "Confirm Delete"
-                      : "Details"}
-              </h3>
-              <button onClick={() => setShowModal(false)}>×</button>
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-mono font-medium transition-all ${
+                    currentPage === i + 1
+                      ? "bg-purple-600 text-white shadow-md"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
             </div>
 
-            <div className="cf-modal-body">
-              {/* ✅ VIEW FIX */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="rounded-lg border border-slate-800 bg-[#111625] px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Styled Configuration Modals */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Blur Modal Overlay Backing */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => { setShowModal(false); setSelectedItem(null); }}
+          />
+          
+          {/* Main Card Frame */}
+          <div className="relative w-full max-w-md transform rounded-2xl border border-slate-800 bg-[#111625] p-6 shadow-2xl transition-all">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-semibold text-white">
+                {modalType === "add" && "Add Configuration"}
+                {modalType === "edit" && "Edit Configuration"}
+                {modalType === "delete" && "Confirm Delete"}
+                {modalType === "view" && "Details"}
+              </h3>
+              <button
+                className="text-slate-400 hover:text-white text-xl font-medium transition-colors"
+                onClick={() => { setShowModal(false); setSelectedItem(null); }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mt-4">
+              {/* VIEW DETAIL CARD CONTAINER */}
               {modalType === "view" && selectedItem && (
-                <div className="cf-view-details">
-                  <div className="cf-detail-row">
-                    <strong>Level:</strong>
-                    <span>Level {selectedItem.level}</span>
+                <div className="space-y-3 rounded-xl bg-[#0a0d16] p-4 text-sm font-mono">
+                  <div className="flex justify-between border-b border-slate-800/50 pb-2">
+                    <span className="text-slate-400 font-sans">Level:</span>
+                    <span className="text-white font-bold">Level {selectedItem.level}</span>
                   </div>
-
-                  <div className="cf-detail-row">
-                    <strong>Direct Staking:</strong>
-                    <span>{selectedItem.directStaking}</span>
+                  <div className="flex justify-between border-b border-slate-800/50 pb-2">
+                    <span className="text-slate-400 font-sans">Direct Staking:</span>
+                    <span className="text-[#10b981] font-bold">{selectedItem.directStaking}</span>
                   </div>
-
-                  <div className="cf-detail-row">
-                    <strong>Status:</strong>
-                    <span>{selectedItem.status ? "Active" : "Inactive"}</span>
+                  <div className="flex justify-between border-b border-slate-800/50 pb-2">
+                    <span className="text-slate-400 font-sans">Status:</span>
+                    <span className={selectedItem.status ? "text-purple-400" : "text-slate-500"}>
+                      {selectedItem.status ? "Active" : "Inactive"}
+                    </span>
                   </div>
-
-                  <div className="cf-detail-row">
-                    <strong>Created At:</strong>
-                    <span>{selectedItem.createdAt}</span>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-slate-400 font-sans">Created At:</span>
+                    <span className="text-slate-300 text-xs">{selectedItem.createdAt || "-"}</span>
                   </div>
                 </div>
               )}
 
+              {/* ADD CONFIG INPUT FORM */}
               {modalType === "add" && (
-                <>
-                  <input
-                    placeholder="Level"
-                    value={addForm.level}
-                    onChange={(e) =>
-                      setAddForm({ ...addForm, level: e.target.value })
-                    }
-                  />
-                  <input
-                    placeholder="Direct Staking"
-                    value={addForm.directStaking}
-                    onChange={(e) =>
-                      setAddForm({
-                        ...addForm,
-                        directStaking: e.target.value,
-                      })
-                    }
-                  />
-                </>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Level
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Enter level number"
+                      value={addForm.level}
+                      onChange={(e) => setAddForm({ ...addForm, level: e.target.value })}
+                      className="w-full rounded-lg border border-slate-800 bg-[#0a0d16] px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all focus:border-purple-500/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Direct Staking Requirement ($)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter amount target"
+                      value={addForm.directStaking}
+                      onChange={(e) => setAddForm({ ...addForm, directStaking: e.target.value })}
+                      className="w-full rounded-lg border border-slate-800 bg-[#0a0d16] px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all focus:border-purple-500/50"
+                    />
+                  </div>
+                </div>
               )}
 
+              {/* EDIT CONFIG INPUT FORM */}
               {modalType === "edit" && (
-                <>
-                  <input
-                    value={editForm.level}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, level: e.target.value })
-                    }
-                  />
-                  <input
-                    value={editForm.directStaking}
-                    onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        directStaking: e.target.value,
-                      })
-                    }
-                  />
-                </>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Level
+                    </label>
+                    <input
+                      type="number"
+                      value={editForm.level}
+                      onChange={(e) => setEditForm({ ...editForm, level: e.target.value })}
+                      className="w-full rounded-lg border border-slate-800 bg-[#0a0d16] px-4 py-2.5 text-sm text-slate-200 outline-none transition-all focus:border-purple-500/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Direct Staking Requirement ($)
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.directStaking}
+                      onChange={(e) => setEditForm({ ...editForm, directStaking: e.target.value })}
+                      className="w-full rounded-lg border border-slate-800 bg-[#0a0d16] px-4 py-2.5 text-sm text-slate-200 outline-none transition-all focus:border-purple-500/50"
+                    />
+                  </div>
+                </div>
               )}
 
+              {/* REMOVE / DELETE OVERLAY */}
               {modalType === "delete" && (
-                <p>Are you sure you want to delete?</p>
+                <p className="text-sm text-slate-300">
+                  Are you sure you want to permanently delete this requirement metric? This action is immediate.
+                </p>
               )}
             </div>
 
-            <div className="cf-modal-footer">
-              <button onClick={() => setShowModal(false)}>Cancel</button>
-              <button onClick={confirmModal}>Confirm</button>
+            {/* Footer Form Interactive Triggers */}
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-800 pt-4">
+              <button 
+                onClick={() => setShowModal(false)}
+                className="rounded-lg border border-slate-800 bg-[#161d30] px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmModal}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-md transition-all active:scale-95 ${
+                  modalType === "delete" 
+                    ? "bg-red-600 hover:bg-red-500" 
+                    : "bg-purple-600 hover:bg-purple-500"
+                }`}
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {showPopup && <div className="cf-popup">{popupMessage}</div>}
+      {/* Floating Application Toast Notifications */}
+      {showPopup && (
+        <div className="fixed bottom-5 right-5 z-50 transform animate-bounce rounded-xl border border-slate-800 bg-[#131929] px-5 py-3 text-sm font-medium text-purple-300 shadow-2xl backdrop-blur">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+            {popupMessage}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

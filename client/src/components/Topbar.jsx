@@ -40,7 +40,7 @@ const Topbar = ({ onMenuClick }) => {
               Welcome back
             </p>
             <h1 className="text-base sm:text-lg font-bold tracking-tight text-white mt-0.5">
-              Admin Dashboard
+              Admin
             </h1>
           </div>
         </div>

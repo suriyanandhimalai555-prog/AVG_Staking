@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../components/user/UserSidebar";
 import Topbar from "../components/user/UserTopbar";
 import API from "../utils/api";
-import { FaTrophy } from "react-icons/fa";
+import { FaInfo, FaTrophy } from "react-icons/fa";
 
 const UserReward = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,10 +39,26 @@ const UserReward = () => {
 
         <div className="userRewardPage">
           {/* HEADER */}
-          <div className="userRewardHeader">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+            {/* Left: Heading Info */}
             <div>
-              <h2>Rewards</h2>
-              <p>Track your reward milestone progress</p>
+              <h2 className="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
+                Rewards
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Track your reward milestone progress and dynamic dashboard metrics.
+              </p>
+            </div>
+
+            {/* Right: Policy Notice Box */}
+            <div className="flex items-start md:items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-4 py-3 rounded-lg max-w-md">
+              <div className="p-1.5 bg-amber-500/20 rounded-md text-amber-400 mt-0.5 md:mt-0 flex items-center justify-center shrink-0">
+                <FaInfo className="text-xs" />
+              </div>
+              <h2 className="text-xs leading-relaxed text-amber-200/90 font-medium">
+                All achievement-based salaries are subject to a{" "}
+                <span className="text-amber-400 font-bold font-mono">10%</span> deduction as per AVG Staking policy.
+              </h2>
             </div>
           </div>
 
@@ -66,19 +82,18 @@ const UserReward = () => {
                   </div>
 
                   <div
-                    className={`rewardStatus ${
-                      reward.status === "approved"
+                    className={`rewardStatus ${reward.status === "approved"
                         ? "success"
                         : reward.status === "rejected"
-                        ? "failed"
-                        : "pending"
-                    }`}
+                          ? "failed"
+                          : "pending"
+                      }`}
                   >
                     {reward.status === "approved"
                       ? "Completed"
                       : reward.status === "rejected"
-                      ? "Rejected"
-                      : "In Progress"}
+                        ? "Rejected"
+                        : "In Progress"}
                   </div>
                 </div>
 
@@ -105,9 +120,8 @@ const UserReward = () => {
                             {reward.timeline?.map((t, i) => (
                               <div
                                 key={i}
-                                className={`timelineItem ${
-                                  t.achieved ? "done" : ""
-                                }`}
+                                className={`timelineItem ${t.achieved ? "done" : ""
+                                  }`}
                               >
                                 <div className="circle">
                                   {t.achieved ? "✔" : ""}
@@ -135,19 +149,18 @@ const UserReward = () => {
                         {/* STATUS */}
                         <td>
                           <span
-                            className={`statusBadge ${
-                              reward.status === "approved"
+                            className={`statusBadge ${reward.status === "approved"
                                 ? "success"
                                 : reward.status === "rejected"
-                                ? "failed"
-                                : "pending"
-                            }`}
+                                  ? "failed"
+                                  : "pending"
+                              }`}
                           >
                             {reward.status === "approved"
                               ? "Approved"
                               : reward.status === "rejected"
-                              ? "Rejected"
-                              : "Pending"}
+                                ? "Rejected"
+                                : "Pending"}
                           </span>
                         </td>
                       </tr>
@@ -168,9 +181,8 @@ const UserReward = () => {
                     <div
                       className="progressFill"
                       style={{
-                        width: `${
-                          (reward.progress / reward.target_amount) * 100
-                        }%`,
+                        width: `${(reward.progress / reward.target_amount) * 100
+                          }%`,
                       }}
                     />
                   </div>

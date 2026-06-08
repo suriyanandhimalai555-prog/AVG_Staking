@@ -18,168 +18,137 @@ const Dashboard = () => {
   const [data, setData] = useState(null);
   const [divisor, setDivisor] = useState("");
 
-useEffect(() => {
-  const fetchDashboard = async () => {
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      const token = localStorage.getItem("token");
+      try {
+        const [dashboardRes, divRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/dashboard`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-divisor`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        setData(dashboardRes.data);
+        setDivisor(divRes.data.divisor);
+      } catch (error) {
+        toast.error("Failed to load dashboard statistics");
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  const updateDivisor = async () => {
     const token = localStorage.getItem("token");
-
-    const [dashboardRes, divRes] = await Promise.all([
-      axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/admin/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      axios.get(`${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-divisor`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-    ]);
-
-    setData(dashboardRes.data);
-    setDivisor(divRes.data.divisor);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-divisor`,
+        { divisor },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Divisor updated successfully");
+    } catch (error) {
+      toast.error("Failed to update divisor");
+    }
   };
 
-  fetchDashboard();
-}, []);
-
-const updateDivisor = async () => {
-  const token = localStorage.getItem("token");
-
-  await axios.post(
-    `${import.meta.env.VITE_APP_BASE_URL}/api/users/staking-divisor`,
-    { divisor },
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-
-  toast.success("Divisor updated successfully");
-};
-
-  if (!data) return <div className="dash-loading">Loading...</div>;
+  if (!data) {
+    return (
+      <div className="flex h-[60vh] w-full items-center justify-center text-slate-400 font-medium">
+        <div className="animate-pulse tracking-wide">Loading Dashboard Summary...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="dash-container">
-      <h1 className="dash-title">Dashboard</h1>
-      <p className="dash-subtitle">Overview of your account activity</p>
-
-      {/* USERS */}
-      <h2 className="dash-section">Users</h2>
-      <div className="dash-grid-3">
-        <Card title="Total Users" value={data.users.total} icon={<FaUsers />} color="purple" />
-        <Card title="Active Users" value={data.users.active} icon={<FaUserCheck />} color="green" />
-        <Card title="Inactive Users" value={data.users.inactive} icon={<FaUserTimes />} color="pink" />
+    <div className="min-h-screen bg-[#070b1e] p-4 sm:p-6 lg:p-8 text-white space-y-8 rounded-2xl shadow-xl">
+      {/* Title Header */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1">Overview of your account activity</p>
       </div>
 
-      {/* TRANSACTIONS */}
-      <h2 className="dash-section">Transactions Overview</h2>
-      <div className="dash-grid-2">
-
-        <Section title="Deposits Overview" icon={<FaArrowDown />}>
-          <SmallCard title="Total Deposits" value={data.deposits.total_count} />
-          <SmallCard title="Total Amount" value={`$${data.deposits.total_amount}`} />
-          <SmallCard title="Today Deposits" value={data.deposits.today_count} />
-          <SmallCard title="Today Amount" value={`$${data.deposits.today_amount}`} />
-        </Section>
-
-        <Section title="Withdraw Overview" icon={<FaArrowUp />}>
-          <SmallCard title="Count" value={data.withdrawals.total_count} />
-          <SmallCard title="Amount" value={`$${data.withdrawals.total_amount}`} />
-          <SmallCard title="Pending" value={data.withdrawals.pending} />
-          <SmallCard title="Withdraw Fee" value="$0.00" />
-        </Section>
-
+      {/* USERS METRICS */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Users</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card title="Total Users" value={data.users.total} icon={<FaUsers />} glowColor="rgba(147,51,234,0.15)" iconBg="bg-purple-500/10" iconColor="text-purple-400" />
+          <Card title="Active Users" value={data.users.active} icon={<FaUserCheck />} glowColor="rgba(34,197,94,0.15)" iconBg="bg-green-500/10" iconColor="text-green-400" />
+          <Card title="Inactive Users" value={data.users.inactive} icon={<FaUserTimes />} glowColor="rgba(244,63,94,0.15)" iconBg="bg-rose-500/10" iconColor="text-rose-400" />
+        </div>
       </div>
 
-      {/* INCOME */}
-      <h2 className="dash-section">Income</h2>
-      <div className="dash-grid-3">
-        <Card title="ROI Income" value={`$${data.income.roi}`} icon={<FaChartLine />} color="green" />
-        <Card title="Level Income" value={`$${data.income.level}`} icon={<FaLayerGroup />} color="purple" />
-        <Card title="Direct Income" value={`$${data.income.direct}`} icon={<FaWallet />} color="cyan" />
+      {/* TRANSACTIONS SECTION */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Transactions Overview</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Section title="Deposits Overview" icon={<FaArrowDown className="text-emerald-400" />}>
+            <SmallCard title="Total Deposits" value={data.deposits.total_count} />
+            <SmallCard title="Total Amount" value={`$${data.deposits.total_amount}`} highlight />
+            <SmallCard title="Today Deposits" value={data.deposits.today_count} />
+            <SmallCard title="Today Amount" value={`$${data.deposits.today_amount}`} highlight />
+          </Section>
+
+          <Section title="Withdraw Overview" icon={<FaArrowUp className="text-rose-400" />}>
+            <SmallCard title="Count" value={data.withdrawals.total_count} />
+            <SmallCard title="Amount" value={`$${data.withdrawals.total_amount}`} highlight />
+            <SmallCard title="Pending" value={data.withdrawals.pending} isWarning={data.withdrawals.pending > 0} />
+            <SmallCard title="Withdraw Fee" value="$0.00" />
+          </Section>
+        </div>
       </div>
 
-      {/* SUPPORT */}
-      <h2 className="dash-section">Support Tickets</h2>
-      <div className="dash-grid-3">
-        <Card title="Open Tickets" value={data.tickets.open} icon={<FaTicketAlt />} color="blue" />
-        <Card title="In Progress" value={data.tickets.progress} icon={<FaMoneyBillWave />} color="yellow" />
-        <Card title="Closed Tickets" value={data.tickets.closed} icon={<FaUserCheck />} color="green" />
+      {/* INCOME METRICS */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Income Overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card title="ROI Income" value={`$${data.income.roi}`} icon={<FaChartLine />} glowColor="rgba(34,197,94,0.15)" iconBg="bg-green-500/10" iconColor="text-green-400" />
+          <Card title="Level Income" value={`$${data.income.level}`} icon={<FaLayerGroup />} glowColor="rgba(147,51,234,0.15)" iconBg="bg-purple-500/10" iconColor="text-purple-400" />
+          <Card title="Direct Income" value={`$${data.income.direct}`} icon={<FaWallet />} glowColor="rgba(6,182,212,0.15)" iconBg="bg-cyan-500/10" iconColor="text-cyan-400" />
+        </div>
       </div>
 
-      <h2 className="dash-section">AVG Staking Settings</h2>
-
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          marginTop: "10px",
-        }}
-      >
-        <div
-          style={{
-            background: "#162a5a", // 🔥 match your card color
-            borderRadius: "16px",
-            padding: "20px",
-            width: "320px",
-            border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
-          }}
-        >
-          {/* Title */}
-          <div>
-            <p
-              style={{
-                fontSize: "13px",
-                color: "#aab3d1",
-                marginBottom: "5px",
-              }}
-            >
-              Staking Divisor
-            </p>
-
-            <h3
-              style={{
-                fontSize: "28px",
-                fontWeight: "600",
-                color: "#ffffff",
-              }}
-            >
-              {divisor}
-            </h3>
+      {/* SUPPORT & SETTINGS SPLIT GRID */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* SUPPORT TICKETS CARD BOX */}
+        <div className="xl:col-span-2 space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Support Tickets</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card title="Open Tickets" value={data.tickets.open} icon={<FaTicketAlt />} glowColor="rgba(59,130,246,0.15)" iconBg="bg-blue-500/10" iconColor="text-blue-400" />
+            <Card title="In Progress" value={data.tickets.progress} icon={<FaMoneyBillWave />} glowColor="rgba(234,179,8,0.15)" iconBg="bg-yellow-500/10" iconColor="text-yellow-400" />
+            <Card title="Closed Tickets" value={data.tickets.closed} icon={<FaUserCheck />} glowColor="rgba(34,197,94,0.15)" iconBg="bg-green-500/10" iconColor="text-green-400" />
           </div>
+        </div>
 
-          {/* Input */}
-          <input
-            type="number"
-            step="0.001"
-            value={divisor}
-            onChange={(e) => setDivisor(e.target.value)}
-            style={{
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "#0f1f47",
-              color: "#fff",
-              fontSize: "14px",
-              outline: "none",
-            }}
-          />
-
-          {/* Button */}
-          <button
-            onClick={updateDivisor}
-            style={{
-              padding: "12px",
-              borderRadius: "10px",
-              border: "none",
-              background: "linear-gradient(135deg, #3b82f6, #22c55e)",
-              color: "#fff",
-              fontWeight: "600",
-              fontSize: "14px",
-              cursor: "pointer",
-              transition: "0.2s",
-            }}
-          >
-            Update Divisor
-          </button>
+        {/* AVG STAKING SETTINGS PANEL */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">AVG Staking Settings</h2>
+          <div className="border border-white/5 bg-[#111936] rounded-2xl p-5 shadow-xl flex flex-col justify-between h-[156px]">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Staking Divisor</p>
+                <h3 className="text-2xl font-bold mt-1 text-white tracking-tight">{divisor || "0.0"}</h3>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-auto">
+              <input
+                type="number"
+                step="0.001"
+                value={divisor}
+                onChange={(e) => setDivisor(e.target.value)}
+                className="flex-1 bg-[#090f26] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="0.00"
+              />
+              <button
+                onClick={updateDivisor}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition duration-200 shadow-md shadow-purple-950/50 whitespace-nowrap"
+              >
+                Update
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -188,42 +157,46 @@ const updateDivisor = async () => {
 
 export default Dashboard;
 
-/* COMPONENTS */
+/* SUB-COMPONENTS */
 
-const Card = ({ title, value, color, icon }) => {
+const Card = ({ title, value, icon, glowColor, iconBg, iconColor }) => {
   return (
-    <div className={`dash-card dash-${color}`}>
-      <div>
-        <p className="dash-card-title">{title}</p>
-        <h3 className="dash-card-value">{value}</h3>
+    <div 
+      className="relative border border-white/5 bg-[#111936] rounded-2xl p-5 flex items-center justify-between overflow-hidden shadow-lg transition-transform duration-200 hover:-translate-y-0.5"
+      style={{ boxShadow: `0 10px 30px -10px ${glowColor || 'rgba(0,0,0,0.3)'}` }}
+    >
+      <div className="space-y-1 z-10">
+        <p className="text-xs font-medium text-slate-400 tracking-wide">{title}</p>
+        <h3 className="text-2xl font-bold text-white tracking-tight">{value}</h3>
       </div>
-
-      <div className="dash-icon-box">
+      <div className={`h-11 w-11 rounded-xl flex items-center justify-center ${iconBg} ${iconColor} text-lg z-10`}>
         {icon}
       </div>
     </div>
   );
 };
 
-const SmallCard = ({ title, value }) => {
+const Section = ({ title, children, icon }) => {
   return (
-    <div className="dash-small-card">
-      <p>{title}</p>
-      <h4>{value}</h4>
+    <div className="border border-white/5 bg-[#111936] rounded-2xl p-5 space-y-4 shadow-xl">
+      <div className="flex items-center gap-2.5 pb-2 border-b border-white/5">
+        <span className="text-base">{icon}</span>
+        <h3 className="font-semibold text-sm text-slate-200 tracking-wide">{title}</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3.5">{children}</div>
     </div>
   );
 };
 
-const Section = ({ title, children, icon }) => {
+const SmallCard = ({ title, value, highlight, isWarning }) => {
   return (
-    <div className="dash-section-card">
-      <div className="dash-section-header">
-        <div className="dash-section-title">
-          {icon}
-          <h3>{title}</h3>
-        </div>
-      </div>
-      <div className="dash-inner-grid">{children}</div>
+    <div className="bg-[#090f26] border border-white/[0.03] rounded-xl p-3 space-y-1">
+      <p className="text-[11px] font-medium text-slate-500 tracking-wide">{title}</p>
+      <h4 className={`text-base font-bold tracking-tight ${
+        isWarning ? "text-amber-400" : highlight ? "text-indigo-400" : "text-white"
+      }`}>
+        {value}
+      </h4>
     </div>
   );
 };

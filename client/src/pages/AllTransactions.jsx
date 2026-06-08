@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { FaEllipsisV } from "react-icons/fa";
+import { FaSearch, FaExchangeAlt, FaUserCheck, FaSitemap } from "react-icons/fa";
 import axios from "axios";
 import { formatDateTimeIST } from "../utils/dateFormat";
 
@@ -8,11 +8,6 @@ const AllTransactions = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState(10);
-  const [menu, setMenu] = useState(null);
-
-  const [viewData, setViewData] = useState(null);
-  const [editData, setEditData] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
 
   const token = localStorage.getItem("token");
 
@@ -118,108 +113,161 @@ const AllTransactions = () => {
     return pages;
   };
 
-  return (
-    <div className="users-page">
+  const getTypeBadgeStyles = (type) => {
+    if (type.includes("Direct")) {
+      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+    }
+    if (type.includes("Level")) {
+      return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+    }
+    return "bg-slate-500/10 text-slate-300 border-slate-700";
+  };
 
-      {/* HEADER */}
-      <div className="users-header">
+  const getTypeIcon = (type) => {
+    if (type.includes("Direct")) return <FaUserCheck className="inline mr-1 text-emerald-400" size={12} />;
+    if (type.includes("Level")) return <FaSitemap className="inline mr-1 text-indigo-400" size={12} />;
+    return <FaExchangeAlt className="inline mr-1 text-slate-400" size={12} />;
+  };
+
+  return (
+    <div className="p-6 bg-slate-900 min-h-screen text-slate-100 rounded-2xl shadow-2xl">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
         <div>
-          <h2>Transactions</h2>
-          <p>All</p>
+          <h2 className="text-2xl font-bold tracking-wide text-white">Transactions Management</h2>
+          <p className="text-sm text-slate-400 mt-1">Unified ledger auditing across platform channels</p>
         </div>
 
-        <input
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-        />
-      </div>
-
-      {/* TABLE */}
-      <div className="table-card">
-        <h3 style={{ marginBottom: 15 }}>All Transactions</h3>
-
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>S.NO</th>
-              <th>FROM</th>
-              <th>TO</th>
-              <th>TYPE</th>
-              <th>AMOUNT</th>
-              <th>CREATED</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginated.length === 0 ? (
-              <tr>
-                <td colSpan="6">No data</td>
-              </tr>
-            ) : (
-              paginated.map((d, i) => (
-                <tr key={d.id}>
-                  <td>{(page - 1) * rows + i + 1}</td>
-                  <td>{d.from}</td>
-                  <td>{d.to}</td>
-                  <td><span className="type-badge">{d.type}</span></td>
-                  <td>{d.amount}</td>
-                  <td>{formatDateTimeIST(d.created)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* PAGINATION */}
-      <div className="pagination">
-
-        <div className="usrDeposit__rows">
-          Rows
-          <select
-            value={rows}
+        <div className="relative w-full md:w-80">
+          {/* <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+            <FaSearch size={14} />
+          </span> */}
+          <input
+            type="text"
+            placeholder="Search accounts, pathways..."
+            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            value={search}
             onChange={(e) => {
-              setRows(Number(e.target.value));
+              setSearch(e.target.value);
               setPage(1);
             }}
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-          </select>
+          />
+        </div>
+      </div>
+
+      {/* TABLE DATA ARCHITECTURE */}
+      <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
+        <div className="p-5 border-b border-slate-700 bg-slate-800/50">
+          <h3 className="font-semibold text-base text-white">Master Transaction Log</h3>
         </div>
 
-        <div>
-          <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-            {"<"}
-          </button>
-
-          {getPagination().map((p, i) =>
-            p === "..." ? (
-              <span key={i} style={{ padding: "0 6px" }}>...</span>
-            ) : (
-              <button
-                key={i}
-                className={page === p ? "active" : ""}
-                onClick={() => setPage(p)}
-              >
-                {p}
-              </button>
-            )
-          )}
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage(p => p + 1)}
-          >
-            {">"}
-          </button>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr className="bg-slate-900 text-slate-400 uppercase text-xs tracking-wider font-semibold border-b border-slate-700">
+                <th className="py-4 px-5 w-16">S.No</th>
+                <th className="py-4 px-5">Origin Account (From)</th>
+                <th className="py-4 px-5">Target Recipient (To)</th>
+                <th className="py-4 px-5">Channel Type</th>
+                <th className="py-4 px-5">Transferred Sum</th>
+                <th className="py-4 px-5">Settled Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700/50 text-sm text-slate-300">
+              {paginated.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-12 text-slate-500 font-medium">
+                    No matching transactional data records found inside history profiles.
+                  </td>
+                </tr>
+              ) : (
+                paginated.map((d, i) => (
+                  <tr key={d.id} className="hover:bg-slate-700/30 transition-colors">
+                    <td className="py-3.5 px-5 text-slate-500 font-medium">
+                      {(page - 1) * rows + i + 1}
+                    </td>
+                    <td className="py-3.5 px-5 font-medium text-slate-200 max-w-xs truncate">
+                      {d.from}
+                    </td>
+                    <td className="py-3.5 px-5 font-medium text-slate-200 max-w-xs truncate">
+                      {d.to}
+                    </td>
+                    <td className="py-3.5 px-5">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium tracking-wide border ${getTypeBadgeStyles(d.type)}`}>
+                        {getTypeIcon(d.type)}
+                        {d.type}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 font-semibold text-emerald-400 tracking-wide">
+                      {d.amount}
+                    </td>
+                    <td className="py-3.5 px-5 text-xs text-slate-400">
+                      {formatDateTimeIST(d.created)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
+        {/* CONTROLLER MATRIX (PAGINATION) */}
+        <div className="p-4 bg-slate-900/40 border-t border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+          
+          <div className="flex items-center gap-2">
+            <span>Display matrix context:</span>
+            <select
+              value={rows}
+              onChange={(e) => {
+                setRows(Number(e.target.value));
+                setPage(1);
+              }}
+              className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value={5}>5 records</option>
+              <option value={10}>10 records</option>
+              <option value={25}>25 records</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded disabled:opacity-40 hover:bg-slate-700 text-slate-300 disabled:hover:bg-slate-800 transition-colors font-medium"
+            >
+              {"<"}
+            </button>
+
+            {getPagination().map((p, i) =>
+              p === "..." ? (
+                <span key={i} className="px-1.5 text-slate-600 font-bold">...</span>
+              ) : (
+                <button
+                  key={i}
+                  onClick={() => setPage(p)}
+                  className={`px-2.5 py-1.5 rounded font-semibold border transition-all ${
+                    page === p
+                      ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/20"
+                      : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded disabled:opacity-40 hover:bg-slate-700 text-slate-300 disabled:hover:bg-slate-800 transition-colors font-medium"
+            >
+              {">"}
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );

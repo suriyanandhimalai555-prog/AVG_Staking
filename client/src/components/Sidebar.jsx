@@ -77,6 +77,15 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
   return (
     <>
+    <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none !important;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}</style>
       {/* Mobile Backdrop Overlay */}
       <div
         className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity md:hidden ${
@@ -117,7 +126,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
           </div>
 
           {/* Navigation Menu Links */}
-          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-none">
+          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 h-[calc(100vh-70px)] no-scrollbar">
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
               Main
             </p>
