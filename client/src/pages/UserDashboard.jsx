@@ -433,7 +433,7 @@ const UserDashboard = () => {
         <Topbar isOpen={isOpen} setIsOpen={setIsOpen} />
 
         <div className="content">
-          <AvgAchieversCard />
+          {/* <AvgAchieversCard /> */}
 
           <h2 className="page-title">Dashboard</h2>
           <span>Overview of your account activity</span>
