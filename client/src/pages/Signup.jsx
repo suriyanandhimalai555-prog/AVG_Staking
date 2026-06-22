@@ -61,7 +61,7 @@ const Signup = () => {
       email: data.email.trim(),
       phone: data.phone.trim(),
       password: data.password,
-      referralCode: data.referralCode.trim() || undefined,
+      referralCode: data.referralCode.trim(),
     };
 
     if (
@@ -70,7 +70,8 @@ const Signup = () => {
       !payload.email ||
       !payload.phone ||
       !payload.password ||
-      !data.confirmPassword
+      !data.confirmPassword ||
+      !payload.referralCode
     ) {
       return toast.error("All fields are required");
     }
@@ -258,7 +259,7 @@ const Signup = () => {
               </div>
 
               <div className="field">
-                <label>Referral Code (optional)</label>
+                <label>Referral Code</label>
                 <div className="input-shell">
                   <span className="input-icon">
                     <MailIcon />
