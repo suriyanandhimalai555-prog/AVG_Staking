@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 const UserWithdraw = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [search, setSearch] = useState("");
   const [data, setData] = useState([]);
@@ -212,6 +213,9 @@ const UserWithdraw = () => {
     const err = validate();
     if (Object.keys(err).length) return setErrors(err);
 
+    // Set submitting to true immediately to disable the button
+    setSubmitting(true);
+
     try {
       await axios.post(
         `${import.meta.env.VITE_APP_BASE_URL}/api/withdrawals`,
@@ -227,6 +231,9 @@ const UserWithdraw = () => {
       fetchData();
     } catch (err) {
       alert(err.response?.data?.message || "Error");
+    } finally {
+      // Re-enable the button when the API call finishes (success or error)
+      setSubmitting(false);
     }
   };
 
@@ -239,7 +246,7 @@ const UserWithdraw = () => {
 
         <div className="uwContent">
           <div className="uwHeader">
-            <h2>Withdraw</h2>
+            <h2 className="usrDeposit__title">Withdraw</h2>
             <button onClick={handleOpenWithdraw}>Create Withdraw</button>
           </div>
 
@@ -286,10 +293,10 @@ const UserWithdraw = () => {
                       <td>{item.request}</td>
                       <td>{item.approved}</td>
                       <td>
-  <span className={`statusBadge ${item.status.toLowerCase()}`}>
-    {item.status}
-  </span>
-</td>
+                        <span className={`statusBadge ${item.status.toLowerCase()}`}>
+                          {item.status}
+                        </span>
+                      </td>
                       <td>{formatDateTime(item.date)}</td>
                     </tr>
                   ))
@@ -430,8 +437,12 @@ const UserWithdraw = () => {
               <button className="uw2Cancel" onClick={() => setShowModal(false)}>
                 Cancel
               </button>
-              <button className="uw2Submit" onClick={handleSubmit}>
-                Create Withdraw
+              <button
+                className="uw2Submit"
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? "Processing..." : "Create Withdraw"}
               </button>
             </div>
           </div>

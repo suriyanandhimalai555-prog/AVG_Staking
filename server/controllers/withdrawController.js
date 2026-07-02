@@ -94,6 +94,8 @@ export const getWithdrawSummary = async (req, res) => {
 
 /* CREATE WITHDRAW */
 export const createWithdraw = async (req, res) => {
+  const client = await pool.connect(); // Get a dedicated client from the pool for transactions
+  
   try {
     const userId = req.user.id;
     let { walletType, currencyType, amount } = req.body;
@@ -118,63 +120,39 @@ export const createWithdraw = async (req, res) => {
       return res.status(400).json({ message: "Minimum $20 required" });
     }
 
+    // --- START TRANSACTION ---
+    await client.query("BEGIN");
+
+    // Obtain an exclusive lock for this specific userId. 
+    // If another request for the same user comes in, it will wait here until this transaction completes.
+    await client.query("SELECT pg_advisory_xact_lock($1)", [userId]);
+
     const [roiRes, directRes, levelRes, withdrawRes] = await Promise.all([
-
-      pool.query(
-        `SELECT COALESCE(SUM(amount),0) AS total
-         FROM roi_transactions
-         WHERE user_id = $1`,
+      client.query(
+        `SELECT COALESCE(SUM(amount),0) AS total FROM roi_transactions WHERE user_id = $1`,
         [userId]
       ),
-
-      pool.query(
-        `SELECT COALESCE(SUM(amount),0) AS total
-         FROM level_income
-         WHERE user_id = $1
-         AND income_type IN ('direct','plan_direct')`,
+      client.query(
+        `SELECT COALESCE(SUM(amount),0) AS total FROM level_income WHERE user_id = $1 AND income_type IN ('direct','plan_direct')`,
         [userId]
       ),
-
-      pool.query(
-        `SELECT COALESCE(SUM(amount),0) AS total
-         FROM level_income
-         WHERE user_id = $1
-         AND income_type = 'level'`,
+      client.query(
+        `SELECT COALESCE(SUM(amount),0) AS total FROM level_income WHERE user_id = $1 AND income_type = 'level'`,
         [userId]
       ),
-
-      // IMPORTANT: pending + approved are treated as already deducted
-      pool.query(
+      client.query(
         `SELECT
-          COALESCE(SUM(amount) FILTER (
-            WHERE LOWER(status) IN ('pending','approved')
-              AND LOWER(wallet_type) = 'roi'
-          ),0) AS roi_withdrawn,
-
-          COALESCE(SUM(amount) FILTER (
-            WHERE LOWER(status) IN ('pending','approved')
-              AND LOWER(wallet_type) = 'direct'
-          ),0) AS direct_withdrawn,
-
-          COALESCE(SUM(amount) FILTER (
-            WHERE LOWER(status) IN ('pending','approved')
-              AND LOWER(wallet_type) = 'level'
-          ),0) AS level_withdrawn
-
-        FROM withdrawals
-        WHERE user_id = $1`,
+          COALESCE(SUM(amount) FILTER (WHERE LOWER(status) IN ('pending','approved') AND LOWER(wallet_type) = 'roi'),0) AS roi_withdrawn,
+          COALESCE(SUM(amount) FILTER (WHERE LOWER(status) IN ('pending','approved') AND LOWER(wallet_type) = 'direct'),0) AS direct_withdrawn,
+          COALESCE(SUM(amount) FILTER (WHERE LOWER(status) IN ('pending','approved') AND LOWER(wallet_type) = 'level'),0) AS level_withdrawn
+        FROM withdrawals WHERE user_id = $1`,
         [userId]
       )
     ]);
 
-    const roiAvailable =
-      Number(roiRes.rows[0].total || 0) - Number(withdrawRes.rows[0].roi_withdrawn || 0);
-
-    const directAvailable =
-      Number(directRes.rows[0].total || 0) - Number(withdrawRes.rows[0].direct_withdrawn || 0);
-
-    const levelAvailable =
-      Number(levelRes.rows[0].total || 0) - Number(withdrawRes.rows[0].level_withdrawn || 0);
+    const roiAvailable = Number(roiRes.rows[0].total || 0) - Number(withdrawRes.rows[0].roi_withdrawn || 0);
+    const directAvailable = Number(directRes.rows[0].total || 0) - Number(withdrawRes.rows[0].direct_withdrawn || 0);
+    const levelAvailable = Number(levelRes.rows[0].total || 0) - Number(withdrawRes.rows[0].level_withdrawn || 0);
 
     const availableMap = {
       roi: roiAvailable,
@@ -184,23 +162,33 @@ export const createWithdraw = async (req, res) => {
     };
 
     if (amt > availableMap[walletType]) {
+      // Rollback transaction before returning error response
+      await client.query("ROLLBACK");
       return res.status(400).json({
         message: `Insufficient balance. Available ${round2(availableMap[walletType]).toFixed(2)}`
       });
     }
 
-    await pool.query(
+    // Insert the transaction safely
+    await client.query(
       `INSERT INTO withdrawals
        (user_id, wallet_type, currency_type, amount, status, created_at)
        VALUES ($1, $2, $3, $4, 'pending', NOW())`,
       [userId, walletType, currencyType, amt]
     );
 
+    // Commit changes
+    await client.query("COMMIT");
     res.json({ message: "Withdraw request created" });
 
   } catch (err) {
+    // Make sure to rollback if any errors occur inside the transaction block
+    await client.query("ROLLBACK");
     console.error("createWithdraw error:", err);
     res.status(500).json({ error: err.message });
+  } finally {
+    // Crucial: Release the DB client back to the connection pool
+    client.release();
   }
 };
 
