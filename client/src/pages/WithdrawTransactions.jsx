@@ -235,6 +235,7 @@ const WithdrawTransactions = () => {
       return {
         USER: userText.replace(/\s*\(.*?\)\s*$/, "").trim() || "-",
         CODE: codeMatch ? codeMatch[1] : "-",
+        "WALLET SYSTEM": item.wallet || "-",
         "Account Number": item.bank?.accountNumber || "-",
         "IFSC Code": item.bank?.ifscCode || "-",
         "GPay / PhonePe": item.bank?.gpayNumber || "-",
@@ -245,17 +246,40 @@ const WithdrawTransactions = () => {
     });
 
     const totalDollar = exportData.reduce((sum, row) => sum + Number(row.Dollar || 0), 0);
-    exportData.push({ USER: "TOTAL", CODE: "", "Account Number": "", "IFSC Code": "", "GPay / PhonePe": "", "Request Amount": "", "Fee (10%)": "", Dollar: totalDollar });
+    exportData.push({ 
+      USER: "TOTAL", 
+      CODE: "", 
+      "WALLET SYSTEM": "",
+      "Account Number": "", 
+      "IFSC Code": "", 
+      "GPay / PhonePe": "", 
+      "Request Amount": "", 
+      "Fee (10%)": "", 
+      Dollar: totalDollar 
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
-    worksheet["!cols"] = [{ wch: 26 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
+    
+    // Adjusted column widths to fit the extra "WALLET SYSTEM" column perfectly
+    worksheet["!cols"] = [
+      { wch: 26 }, // USER
+      { wch: 14 }, // CODE
+      { wch: 16 }, // WALLET SYSTEM
+      { wch: 22 }, // Account Number
+      { wch: 16 }, // IFSC Code
+      { wch: 18 }, // GPay / PhonePe
+      { wch: 16 }, // Request Amount
+      { wch: 14 }, // Fee (10%)
+      { wch: 14 }  // Dollar
+    ];
+    
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, `${status.toUpperCase()} Withdrawals`);
     XLSX.writeFile(workbook, `withdrawals_${status.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
-    <div className="p-6 bg-slate-900 min-h-screen text-slate-100 rounded-2xl shadow-2xl shadow-2xl">
+    <div className="p-6 bg-slate-900 min-h-screen text-slate-100 rounded-2xl shadow-2xl">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
         <div>
@@ -263,9 +287,6 @@ const WithdrawTransactions = () => {
           <p className="text-sm text-slate-400 mt-1">Withdraw Request Management Portal</p>
         </div>
         <div className="relative w-full md:w-96">
-          {/* <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-            <FaSearch size={16} />
-          </span> */}
           <input
             type="text"
             placeholder="Search credentials, txn id, status..."
@@ -354,7 +375,7 @@ const WithdrawTransactions = () => {
                       </button>
 
                       {menu === d.id && (
-                        <div ref={dropdownRef} className="absolute right-4 mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-30 py-1 text-left overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                        <div ref={dropdownRef} className="absolute right-4 mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-30 py-1 text-left overflow-hidden">
                           <button onClick={() => { setViewData(d); setMenu(null); }} className="w-full px-4 py-2 text-xs flex items-center gap-2 hover:bg-slate-800 text-slate-300 hover:text-white"><FaEye /> View Profile</button>
                           <button onClick={() => { setEditData(d); setMenu(null); }} className="w-full px-4 py-2 text-xs flex items-center gap-2 hover:bg-slate-800 text-slate-300 hover:text-white"><FaEdit /> Quick Edit</button>
                           <button onClick={() => approve(d)} className="w-full px-4 py-2 text-xs flex items-center gap-2 hover:bg-emerald-950/50 text-emerald-400 hover:text-emerald-300"><FaCheck /> Approve</button>
