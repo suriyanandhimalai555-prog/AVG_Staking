@@ -92,7 +92,7 @@ const Footer = () => {
 
       {/* BOTTOM COPYRIGHT */}
       <div className="footer-bottom">
-        © 2026 <span>Avg</span> All right reserved.
+        © 2026 <span>Avg</span> All rights reserved.
       </div>
 
     </footer>

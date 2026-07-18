@@ -170,14 +170,21 @@ const SupportTicket = () => {
                                             </label>
                                         </td>
 
-                                        {/* Date */}
+                                        {/* Date (FIXED FOR 1970 ISSUE ON LIVE RAILWAY BACKEND) */}
                                         <td className="py-4 px-4 text-xs text-slate-500 font-mono">
                                             {(() => {
-                                                if (!t.created_at) return "Recent";
-                                                const parsedDate = new Date(t.created_at);
-                                                return !isNaN(parsedDate.getTime()) 
-                                                    ? parsedDate.toISOString().replace('T', ' ').substring(0, 19) 
-                                                    : "Recent";
+                                                // Check for snake_case or camelCase keys arriving from live database mapper
+                                                const rawDate = t.created_at || t.createdAt;
+                                                if (!rawDate) return "Recent";
+                                                
+                                                const parsedDate = new Date(rawDate);
+                                                
+                                                // Ensure date is valid and isn't glitched out to 1970 Epoch time
+                                                if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 1970) {
+                                                    return parsedDate.toISOString().replace('T', ' ').substring(0, 19);
+                                                }
+                                                
+                                                return "Recent";
                                             })()}
                                         </td>
 
