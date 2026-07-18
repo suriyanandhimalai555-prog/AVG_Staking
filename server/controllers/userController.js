@@ -404,7 +404,7 @@ export const saveMyBankDetails = async (req, res) => {
   }
 };
 
-// CREATE TICKET
+// CREATE TICKET (FIXED FOR LIVE RAILWAY DB NULL DEFAULTS)
 export const createTicket = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -416,10 +416,11 @@ export const createTicket = async (req, res) => {
 
     const ticketId = "TKT" + Math.floor(100000 + Math.random() * 900000);
 
+    // Explicitly inserting 'open' and NOW() so live DB doesn't save them as NULL!
     const result = await pool.query(
       `INSERT INTO support_tickets 
-      (user_id, ticket_id, short_desc, description)
-      VALUES ($1,$2,$3,$4)
+      (user_id, ticket_id, short_desc, description, status, created_at)
+      VALUES ($1, $2, $3, $4, 'open', NOW())
       RETURNING *`,
       [userId, ticketId, shortDesc, description]
     );
