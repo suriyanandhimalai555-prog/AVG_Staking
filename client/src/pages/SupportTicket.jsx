@@ -172,7 +172,13 @@ const SupportTicket = () => {
 
                                         {/* Date */}
                                         <td className="py-4 px-4 text-xs text-slate-500 font-mono">
-                                            {t.created_at ? new Date(t.created_at).toISOString().replace('T', ' ').substring(0, 19) : "Recent"}
+                                            {(() => {
+                                                if (!t.created_at) return "Recent";
+                                                const parsedDate = new Date(t.created_at);
+                                                return !isNaN(parsedDate.getTime()) 
+                                                    ? parsedDate.toISOString().replace('T', ' ').substring(0, 19) 
+                                                    : "Recent";
+                                            })()}
                                         </td>
 
                                         {/* Interactive Quick-Select Action */}
