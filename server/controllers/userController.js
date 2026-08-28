@@ -237,8 +237,6 @@ export const getAllReferrals = async (req, res) => {
 
 export const addBankDetails = async (req, res) => {
   try {
-    console.log("USER:", req.user); // debug
-
     const userId = req.user?.id;
 
     if (!userId) {
@@ -253,16 +251,15 @@ export const addBankDetails = async (req, res) => {
       branch
     } = req.body;
 
-    console.log("BODY:", req.body); // debug
-
     if (!accountHolderName || !accountNumber) {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
+    // ✅ INSERT: Added explicit status ('Pending') and created_at (NOW())
     await pool.query(
       `INSERT INTO bank_details 
-      (user_id, account_holder_name, bank_name, account_number, ifsc_code, branch)
-      VALUES ($1,$2,$3,$4,$5,$6)`,
+      (user_id, account_holder_name, bank_name, account_number, ifsc_code, branch, status, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, 'Pending', NOW())`,
       [
         userId,
         accountHolderName,
@@ -276,7 +273,7 @@ export const addBankDetails = async (req, res) => {
     res.json({ message: "Bank details added" });
 
   } catch (err) {
-    console.error("ADD BANK ERROR:", err); // 🔥 THIS WILL SHOW REAL ISSUE
+    console.error("ADD BANK ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -286,10 +283,13 @@ export const getAllBankDetails = async (req, res) => {
     const result = await pool.query(`
       SELECT 
         b.id,
+        b.user_id,
         u.name AS username,
+        b.account_holder_name,
         b.bank_name,
         b.account_number,
         b.ifsc_code,
+        b.branch,
         b.upi_id,
         b.gpay_number,
         b.status,
@@ -379,25 +379,50 @@ export const saveMyBankDetails = async (req, res) => {
     );
 
     if (existing.rows.length > 0) {
-      // ✅ UPDATE
+      // ✅ UPDATE: Preserves/sets timestamp with COALESCE(created_at, NOW()) and sets status back to 'Pending'
       await pool.query(
         `UPDATE bank_details 
-         SET account_holder_name=$1, bank_name=$2, account_number=$3, ifsc_code=$4, branch=$5, upi_id=$6, gpay_number=$7
+         SET account_holder_name=$1, 
+             bank_name=$2, 
+             account_number=$3, 
+             ifsc_code=$4, 
+             branch=$5, 
+             upi_id=$6, 
+             gpay_number=$7,
+             status='Pending',
+             created_at=COALESCE(created_at, NOW())
          WHERE user_id=$8`,
-        [accountHolderName, bankName, accountNumber, ifscCode, branch, upiId, gpayNumber, userId]
+        [
+          accountHolderName,
+          bankName,
+          accountNumber,
+          ifscCode,
+          branch,
+          upiId,
+          gpayNumber,
+          userId,
+        ]
       );
     } else {
-      // ✅ INSERT
+      // ✅ INSERT: Explicitly populates created_at with NOW() and status as 'Pending'
       await pool.query(
         `INSERT INTO bank_details 
-         (user_id, account_holder_name, bank_name, account_number, ifsc_code, branch, upi_id, gpay_number)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [userId, accountHolderName, bankName, accountNumber, ifscCode, branch, upiId, gpayNumber]
+         (user_id, account_holder_name, bank_name, account_number, ifsc_code, branch, upi_id, gpay_number, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending', NOW())`,
+        [
+          userId,
+          accountHolderName,
+          bankName,
+          accountNumber,
+          ifscCode,
+          branch,
+          upiId,
+          gpayNumber,
+        ]
       );
     }
 
-    res.json({ message: "Saved successfully" });
-
+    res.json({ message: "Bank details saved and submitted for approval" });
   } catch (err) {
     console.error("saveMyBankDetails error:", err);
     res.status(500).json({ error: err.message });
