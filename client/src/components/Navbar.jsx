@@ -309,7 +309,7 @@ const NAVBAR = () => {
           </div>
 
           <ul className={`nav-links ${mobileMenuOpen ? "mobile-open" : ""}`}>
-            {["home", "about", "plan", "roadmap", "features", "FAQ"].map(
+            {["home", "about", "plan", "roadmap", "features", "faq"].map(
               (item) => (
                 <li
                   key={item}
