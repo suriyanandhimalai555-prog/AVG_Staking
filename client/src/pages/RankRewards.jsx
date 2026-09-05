@@ -46,7 +46,15 @@ const RankRewards = () => {
       setLoading(true);
       const res = await API.get("/ranks/admin");
 
-      const formatted = (res.data || []).map((item, index) => ({
+      // 1. Parse and sort data by raw achieved_date in descending order (newest first)
+      const sortedRaw = (res.data || []).sort((a, b) => {
+        const dateA = a.achieved_date ? new Date(a.achieved_date).getTime() : 0;
+        const dateB = b.achieved_date ? new Date(b.achieved_date).getTime() : 0;
+        return dateB - dateA; // Descending order (newest date on top)
+      });
+
+      // 2. Map sorted items to table rows with sequential S.No
+      const formatted = sortedRaw.map((item, index) => ({
         sno: index + 1,
         userId: item.userId,
         userCode: item.userCode || "-",
@@ -57,6 +65,7 @@ const RankRewards = () => {
         phoneNo: item.phone || "-",
         reward: `${item.reward} ($${item.progress} / $${item.target_amount})`,
         status: item.status || "pending",
+        rawAchievedDate: item.achieved_date, // Saved for sorting reference if needed
         achievedDate: formatDateOnly(item.achieved_date),
       }));
 
