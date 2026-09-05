@@ -1,5 +1,14 @@
 import { pool } from "../config/db.js";
 
+// Helper function to get current date in IST format (YYYY-MM-DD)
+const getISTDate = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
 // GET
 export const getRanks = async (req, res) => {
   try {
@@ -86,14 +95,6 @@ export const toggleRankStatus = async (req, res) => {
 export const getRanksUser = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    const getISTDate = () =>
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kolkata",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date());
 
     const rankRes = await pool.query(`
       SELECT id, target_amount, reward
@@ -234,11 +235,13 @@ export const getRanksUser = async (req, res) => {
           await pool.query(
             `
             UPDATE user_rewards
-            SET progress = GREATEST(COALESCE(progress, 0), $1)
-            WHERE id = $2
+            SET progress = GREATEST(COALESCE(progress, 0), $1),
+                achieved_date = COALESCE(achieved_date, $2)
+            WHERE id = $3
             `,
-            [progress, rewardRow.rows[0].id]
+            [progress, today, rewardRow.rows[0].id]
           );
+          if (!achieved_date) achieved_date = today;
         }
       }
 
@@ -252,10 +255,9 @@ export const getRanksUser = async (req, res) => {
         timeline,
       });
 
-      // Stop showing future rewards
-if (!unlocked) {
-  break;
-}
+      if (!unlocked) {
+        break;
+      }
     }
 
     res.json(results);
@@ -267,6 +269,8 @@ if (!unlocked) {
 
 export const getAllUsersRewards = async (req, res) => {
   try {
+    const today = getISTDate();
+
     const rankRes = await pool.query(`
       SELECT id, target_amount, reward
       FROM rank_config
@@ -378,7 +382,7 @@ export const getAllUsersRewards = async (req, res) => {
 
         const rewardRow = await pool.query(
           `
-          SELECT status, achieved_date
+          SELECT id, status, achieved_date
           FROM user_rewards
           WHERE user_id = $1
             AND reward = $2
@@ -388,10 +392,35 @@ export const getAllUsersRewards = async (req, res) => {
           [user.id, rank.reward, rank.target_amount]
         );
 
-        const status = rewardRow.rows[0]?.status || "pending";
-        const achieved_date = rewardRow.rows[0]?.achieved_date || null;
+        let status = rewardRow.rows[0]?.status || "pending";
+        let achieved_date = rewardRow.rows[0]?.achieved_date || null;
 
         if (unlocked) {
+          // Fix: Ensure entry exists in database with achieved_date set
+          if (rewardRow.rows.length === 0) {
+            await pool.query(
+              `
+              INSERT INTO user_rewards
+                (user_id, reward, target_amount, status, progress, achieved_date)
+              VALUES
+                ($1, $2, $3, 'pending', $4, $5)
+              `,
+              [user.id, rank.reward, rank.target_amount, progress, today]
+            );
+            achieved_date = today;
+            status = "pending";
+          } else if (!achieved_date) {
+            await pool.query(
+              `
+              UPDATE user_rewards
+              SET achieved_date = $1
+              WHERE id = $2
+              `,
+              [today, rewardRow.rows[0].id]
+            );
+            achieved_date = today;
+          }
+
           finalData.push({
             userId: user.id,
             userCode: user.user_code,
@@ -418,13 +447,14 @@ export const getAllUsersRewards = async (req, res) => {
 export const updateRewardStatus = async (req, res) => {
   try {
     const { userId, reward, target_amount, status, progress } = req.body;
+    const today = getISTDate();
 
     if (!userId || !reward || !target_amount || !status) {
       return res.status(400).json({ message: "Missing fields" });
     }
 
     const existing = await pool.query(
-      `SELECT id FROM user_rewards
+      `SELECT id, achieved_date FROM user_rewards
        WHERE user_id=$1 AND reward=$2 AND target_amount=$3`,
       [userId, reward, target_amount]
     );
@@ -432,16 +462,16 @@ export const updateRewardStatus = async (req, res) => {
     if (existing.rows.length > 0) {
       await pool.query(
         `UPDATE user_rewards
-         SET status=$1, progress=$2
-         WHERE user_id=$3 AND reward=$4 AND target_amount=$5`,
-        [status, progress || 0, userId, reward, target_amount]
+         SET status=$1, progress=$2, achieved_date = COALESCE(achieved_date, $3)
+         WHERE user_id=$4 AND reward=$5 AND target_amount=$6`,
+        [status, progress || 0, today, userId, reward, target_amount]
       );
     } else {
       await pool.query(
         `INSERT INTO user_rewards
-        (user_id, reward, target_amount, status, progress)
-        VALUES ($1,$2,$3,$4,$5)`,
-        [userId, reward, target_amount, status, progress || 0]
+        (user_id, reward, target_amount, status, progress, achieved_date)
+        VALUES ($1,$2,$3,$4,$5,$6)`,
+        [userId, reward, target_amount, status, progress || 0, today]
       );
     }
 
@@ -497,12 +527,11 @@ const attachMonthsToClaims = async (rows) => {
       amount: Number(m.amount || 0),
     }));
 
-    // ✅ AFTER CLOSE → REMOVE EMPTY MONTHS
     if (isClosed) {
       months = months.filter(
         (m) =>
-          m.status === "completed" || // paid months
-          m.transaction_id // safety check
+          m.status === "completed" ||
+          m.transaction_id
       );
     }
 
@@ -700,7 +729,6 @@ export const updateClaimMonthStatus = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    // ✅ CHECK CLAIM STATUS
     const check = await pool.query(
       `
       SELECT rc.status
@@ -754,7 +782,6 @@ export const closeRewardClaim = async (req, res) => {
       return res.json({ message: "Already closed" });
     }
 
-    // ✅ CLOSE CLAIM
     await pool.query(
       `
       UPDATE reward_claims
