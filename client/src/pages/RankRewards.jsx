@@ -58,6 +58,7 @@ const RankRewards = () => {
         reward: `${item.reward} ($${item.progress} / $${item.target_amount})`,
         status: item.status || "pending",
         achievedDate: formatDateOnly(item.achieved_date),
+        bankDetails: item.bankDetails || {},
       }));
 
       setRewardsData(formatted);
@@ -248,9 +249,6 @@ const RankRewards = () => {
         {/* INPUT FILTERS CONTROL BAR */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-96">
-            {/* <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 pointer-events-none">
-              <FaSearch size={14} />
-            </span> */}
             <input
               type="text"
               placeholder="Search users, phone tags, status arrays..."
@@ -528,13 +526,53 @@ const RankRewards = () => {
               )}
 
               {modalType === "view" && selectedReward && (
-                <div className="grid grid-cols-1 gap-2.5 font-sans">
-                  {Object.entries(selectedReward).map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1')}</span>
-                      <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{String(value)}</span>
+                <div className="space-y-4 font-sans">
+                  {/* Reward / User Details */}
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {Object.entries(selectedReward)
+                      .filter(([key]) => key !== "bankDetails")
+                      .map(([key, value]) => (
+                        <div key={key} className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1')}</span>
+                          <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{String(value)}</span>
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Bank Details Section */}
+                  <div className="border-t border-slate-700/60 pt-3">
+                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2.5">Bank Account Information</h4>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      <div className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Account Holder Name</span>
+                        <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{selectedReward.bankDetails?.accountHolderName || "-"}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Bank Name</span>
+                        <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{selectedReward.bankDetails?.bankName || "-"}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Account Number</span>
+                        <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{selectedReward.bankDetails?.accountNumber || "-"}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">IFSC Code</span>
+                        <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{selectedReward.bankDetails?.ifscCode || "-"}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Branch</span>
+                        <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{selectedReward.bankDetails?.branch || "-"}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">UPI ID</span>
+                        <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{selectedReward.bankDetails?.upiId || "-"}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">GPay Number</span>
+                        <span className="text-sm font-medium text-slate-200 truncate max-w-xs">{selectedReward.bankDetails?.gpayNumber || "-"}</span>
+                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
             </div>

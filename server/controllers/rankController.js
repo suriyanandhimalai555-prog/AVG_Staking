@@ -282,9 +282,22 @@ export const getAllUsersRewards = async (req, res) => {
     if (ranks.length === 0) return res.json([]);
 
     const usersRes = await pool.query(`
-      SELECT id, name, lastname, phone, user_code
-      FROM users
-      ORDER BY id DESC
+      SELECT 
+        u.id, 
+        u.name, 
+        u.lastname, 
+        u.phone, 
+        u.user_code,
+        b.account_holder_name,
+        b.bank_name,
+        b.account_number,
+        b.ifsc_code,
+        b.branch,
+        b.upi_id,
+        b.gpay_number
+      FROM users u
+      LEFT JOIN bank_details b ON b.user_id = u.id
+      ORDER BY u.id DESC
     `);
 
     const getBranchBusiness = async (rootId) => {
@@ -432,6 +445,15 @@ export const getAllUsersRewards = async (req, res) => {
             unlocked,
             status,
             achieved_date,
+            bankDetails: {
+              accountHolderName: user.account_holder_name || "-",
+              bankName: user.bank_name || "-",
+              accountNumber: user.account_number || "-",
+              ifscCode: user.ifsc_code || "-",
+              branch: user.branch || "-",
+              upiId: user.upi_id || "-",
+              gpayNumber: user.gpay_number || "-",
+            },
           });
         }
       }
