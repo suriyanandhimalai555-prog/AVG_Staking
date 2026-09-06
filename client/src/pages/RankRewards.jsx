@@ -117,6 +117,7 @@ const RankRewards = () => {
     setSelectedReward(null);
   };
 
+  // EXCEL EXPORT INCLUDING BANK DETAILS
   const handleDownloadExcel = (statusType) => {
     const dataToExport = rewardsData.filter(
       (item) => item.status.toLowerCase() === statusType.toLowerCase()
@@ -135,14 +136,37 @@ const RankRewards = () => {
       "Reward Details": item.reward,
       "Achieved Date": item.achievedDate,
       "Status": item.status.toUpperCase(),
+      "Account Holder Name": item.bankDetails?.accountHolderName || "-",
+      "Bank Name": item.bankDetails?.bankName || "-",
+      "Account Number": item.bankDetails?.accountNumber || "-",
+      "IFSC Code": item.bankDetails?.ifscCode || "-",
+      "Branch": item.bankDetails?.branch || "-",
+      "UPI ID": item.bankDetails?.upiId || "-",
+      "GPay Number": item.bankDetails?.gpayNumber || "-",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelRows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, `${statusType.toUpperCase()} Rewards`);
 
-    worksheet["!cols"] = [{ wch: 6 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 12 }];
-    const fileName = `Rank_Rewards_${statusType}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    worksheet["!cols"] = [
+      { wch: 6 },  // S.No
+      { wch: 20 }, // Username
+      { wch: 15 }, // User Code
+      { wch: 15 }, // Phone No
+      { wch: 30 }, // Reward Details
+      { wch: 15 }, // Achieved Date
+      { wch: 12 }, // Status
+      { wch: 22 }, // Account Holder Name
+      { wch: 20 }, // Bank Name
+      { wch: 20 }, // Account Number
+      { wch: 15 }, // IFSC Code
+      { wch: 18 }, // Branch
+      { wch: 22 }, // UPI ID
+      { wch: 16 }, // GPay Number
+    ];
+
+    const fileName = `Rank_Rewards_${statusType}_${new Date().toISOString().split("T")[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 
@@ -330,7 +354,6 @@ const RankRewards = () => {
                       </span>
                     </td>
                     
-                    {/* DROP CONTROL MECHANIC WITHOUT LEGACY STYLES */}
                     <td className="py-4 px-5 text-center relative">
                       <button
                         onClick={() => setActiveMenuId(activeMenuId === reward.sno ? null : reward.sno)}
@@ -481,7 +504,7 @@ const RankRewards = () => {
         </div>
       </div>
 
-      {/* CORE POPUP MODAL ARCHITECTURE */}
+      {/* POPUP MODAL ARCHITECTURE */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
