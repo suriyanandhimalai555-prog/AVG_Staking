@@ -54,11 +54,11 @@ const getUplineUserId = async (client, userId) => {
 
 /**
  * Calculates total active deposits made strictly by direct referrals (Level 1) of the receiver.
+ * Allows excluding the current plan transaction to check volume prior to this deposit.
  */
-const getDirectReferralTotalDeposit = async (client, receiverUserId) => {
+const getDirectReferralTotalDeposit = async (client, receiverUserId, excludeUserPlanId = null) => {
   if (!receiverUserId) return 0;
 
-  // 1. Fetch the user's string-based user_code separately
   const userRes = await client.query(
     `SELECT user_code FROM users WHERE id = $1::integer LIMIT 1`,
     [receiverUserId]
@@ -66,7 +66,6 @@ const getDirectReferralTotalDeposit = async (client, receiverUserId) => {
 
   const receiverCode = userRes.rows[0]?.user_code || "";
 
-  // 2. Safely match referred_by against either ID or user_code
   const result = await client.query(
     `
     SELECT COALESCE(SUM(up.amount), 0) AS total
@@ -77,8 +76,9 @@ const getDirectReferralTotalDeposit = async (client, receiverUserId) => {
       OR ($2::text <> '' AND u.referred_by::text = $2::text)
     )
     AND up.status = 'active'
+    AND ($3::integer IS NULL OR up.id <> $3::integer)
     `,
-    [String(receiverUserId), String(receiverCode)]
+    [String(receiverUserId), String(receiverCode), excludeUserPlanId]
   );
 
   return Number(result.rows[0]?.total || 0);
@@ -94,7 +94,7 @@ export const creditLevelIncome = async ({
     const amount = Number(planAmount);
 
     if (!buyerId || !Number.isFinite(amount) || amount <= 0) {
-      throw new Error("Invalid data");
+      throw new Error("Invalid data provided");
     }
 
     const levelConfigs = await getActiveLevelConfigs(client);
@@ -120,28 +120,45 @@ export const creditLevelIncome = async ({
       const config = levelConfigs.find((l) => Number(l.level) === level);
       if (!config) continue;
 
-      // Level 1 = Direct Income (Always eligible)
+      let eligibleAmountForCommission = amount;
+
+      // Unlock checks & incremental spill logic for Level 2 and beyond
       if (level > 1) {
-        const requiredDirectStaking = await getLevelUnlockRequirement(client, level);
+        const requiredTarget = await getLevelUnlockRequirement(client, level);
 
-        // Check total active direct deposit of receiver's Level 1 team
-        const currentDirectStaking = await getDirectReferralTotalDeposit(client, receiverId);
+        if (requiredTarget > 0) {
+          // Direct Level 1 staking total BEFORE this transaction
+          const previousDirectStaking = await getDirectReferralTotalDeposit(
+            client,
+            receiverId,
+            userPlanId
+          );
 
-        // If direct referrals haven't met the required threshold, skip payout
-        if (currentDirectStaking < requiredDirectStaking) {
-          continue;
+          // Direct Level 1 staking total AFTER this transaction
+          const currentDirectStaking = previousDirectStaking + amount;
+
+          if (currentDirectStaking <= requiredTarget) {
+            // Target not met yet; 0 eligible commission
+            continue;
+          } else if (previousDirectStaking >= requiredTarget) {
+            // Target was already unlocked; 100% of current amount is eligible
+            eligibleAmountForCommission = amount;
+          } else {
+            // Target unlocked during this deposit; calculate excess above target
+            eligibleAmountForCommission = currentDirectStaking - requiredTarget;
+          }
         }
       }
 
       const totalIncome = Number(
-        ((amount * Number(config.percentage)) / 100).toFixed(2)
+        ((eligibleAmountForCommission * Number(config.percentage)) / 100).toFixed(2)
       );
 
       if (totalIncome <= 0) continue;
 
       let remainingIncome = totalIncome;
 
-      // Get active plans of the receiver to credit income within ceiling limits
+      // Fetch receiver's active plans to credit income within ceiling limits
       const plansRes = await client.query(
         `
         SELECT 
