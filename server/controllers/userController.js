@@ -929,14 +929,24 @@ export const getAdminDashboard = async (req, res) => {
       FROM users
     `);
 
-    /* ================= DEPOSITS ================= */
+    /* ================= DEPOSITS & STAKING ================= */
     const depositRes = await pool.query(`
       SELECT
         COUNT(*) AS total_count,
         COALESCE(SUM(amount),0) AS total_amount,
+        COALESCE(SUM(
+          CASE
+            WHEN staking_return IS NOT NULL AND staking_return > 0 
+              THEN staking_return
+            WHEN staking_multiplier IS NOT NULL 
+              THEN amount * staking_multiplier
+            ELSE amount * 1.667
+          END
+        ), 0) AS total_staking,
         COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) AS today_count,
         COALESCE(SUM(amount) FILTER (WHERE DATE(created_at) = CURRENT_DATE),0) AS today_amount
       FROM user_plans
+      WHERE status IN ('active', 'completed')
     `);
 
     /* ================= WITHDRAW ================= */
@@ -987,6 +997,7 @@ export const getAdminDashboard = async (req, res) => {
       deposits: {
         total_count: Number(depositRes.rows[0].total_count),
         total_amount: Number(depositRes.rows[0].total_amount).toFixed(2),
+        total_staking: Number(depositRes.rows[0].total_staking).toFixed(2),
         today_count: Number(depositRes.rows[0].today_count),
         today_amount: Number(depositRes.rows[0].today_amount).toFixed(2),
       },

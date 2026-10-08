@@ -5,6 +5,7 @@ import {
   FaUserCheck,
   FaUserTimes,
   FaMoneyBillWave,
+  FaMoneyBill,
   FaArrowDown,
   FaArrowUp,
   FaChartLine,
@@ -77,6 +78,21 @@ const Dashboard = () => {
           <Card title="Total Users" value={data.users.total} icon={<FaUsers />} glowColor="rgba(147,51,234,0.15)" iconBg="bg-purple-500/10" iconColor="text-purple-400" />
           <Card title="Active Users" value={data.users.active} icon={<FaUserCheck />} glowColor="rgba(34,197,94,0.15)" iconBg="bg-green-500/10" iconColor="text-green-400" />
           <Card title="Inactive Users" value={data.users.inactive} icon={<FaUserTimes />} glowColor="rgba(244,63,94,0.15)" iconBg="bg-rose-500/10" iconColor="text-rose-400" />
+        </div>
+      </div>
+
+      {/* STAKING METRIC */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Staking Overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-4">
+          <Card 
+            title="Total AVG Staking Balance (All Users)" 
+            value={`$${Number(data.deposits.total_staking || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+            icon={<FaMoneyBill />} 
+            glowColor="rgba(234,179,8,0.15)" 
+            iconBg="bg-yellow-500/10" 
+            iconColor="text-yellow-400" 
+          />
         </div>
       </div>
 
