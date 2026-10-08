@@ -87,7 +87,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-4">
           <Card 
             title="Total AVG Staking Balance (All Users)" 
-            value={`$${Number(data.deposits.total_staking || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+            value={`${Number(data.deposits.total_staking || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
             icon={<FaMoneyBill />} 
             glowColor="rgba(234,179,8,0.15)" 
             iconBg="bg-yellow-500/10" 
