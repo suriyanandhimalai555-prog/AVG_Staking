@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { toast } from "react-hot-toast";
-import { FaEllipsisV, FaSearch, FaChevronLeft, FaChevronRight, FaEye, FaToggleOn, FaToggleOff, FaTrashAlt, FaCheck, FaTimes, FaCalendarAlt, FaUser, FaLayerGroup } from "react-icons/fa";
+import * as XLSX from 'xlsx';
+import { 
+  FaEllipsisV, 
+  FaSearch, 
+  FaChevronLeft, 
+  FaChevronRight, 
+  FaEye, 
+  FaToggleOn, 
+  FaToggleOff, 
+  FaTrashAlt, 
+  FaCheck, 
+  FaTimes, 
+  FaCalendarAlt, 
+  FaUser, 
+  FaLayerGroup,
+  FaFileExcel
+} from "react-icons/fa";
 
 const ActivePlans = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -16,11 +32,6 @@ const ActivePlans = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const [editForm, setEditForm] = useState({
-    amount: '',
-    status: 'active',
-  });
 
   // Close context menu if clicked outside
   useEffect(() => {
@@ -46,7 +57,6 @@ const ActivePlans = () => {
 
     let hours = istDate.getHours();
     const minutes = String(istDate.getMinutes()).padStart(2, "0");
-    const seconds = String(istDate.getSeconds()).padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
     hours = hours % 12 || 12;
 
@@ -119,6 +129,55 @@ const ActivePlans = () => {
     setMenuOpen(null);
     setCurrentPage(1);
   }, [showRequests]);
+
+  /* ================= EXCEL EXPORT FUNCTION ================= */
+  const exportToExcel = () => {
+    const dataToExport = showRequests ? requestPlans : plansData;
+
+    if (!dataToExport || dataToExport.length === 0) {
+      toast.error("No data available to export");
+      return;
+    }
+
+    // Format clean objects for Excel export
+    const excelData = dataToExport.map((item, index) => {
+      if (showRequests) {
+        return {
+          "Index": index + 1,
+          "User": item.user,
+          "User Code": item.userCode,
+          "Plan Name": item.planName,
+          "Amount": item.amount,
+          "Status": item.status,
+          "Created At": item.createdAt,
+        };
+      } else {
+        return {
+          "Index": index + 1,
+          "User": item.user,
+          "User Code": item.userCode,
+          "Plan Name": item.planName,
+          "Deposit Amount": item.depositAmount,
+          "Daily ROI": item.dailyROI,
+          "Status": item.status,
+          "Created At": item.createdAt,
+        };
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    const sheetName = showRequests ? "Plan Requests" : "Active Plans";
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+    // Dynamic filename based on active tab and timestamp
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `${showRequests ? 'Plan_Requests' : 'Active_Plans'}_${dateStr}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+    toast.success("Excel sheet downloaded successfully");
+  };
 
   const handleApproveRequest = async (requestId) => {
     try {
@@ -326,19 +385,27 @@ const ActivePlans = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {/* Real-time Filter Field */}
+            {/* Search Input */}
             <div className="relative flex items-center min-w-[240px]">
-              {/* <FaSearch className="absolute left-4 text-slate-400 text-xs pointer-events-none" /> */}
               <input
                 type="text"
                 placeholder="Search index metadata..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-[#0a0f2b] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/60 transition"
+                className="w-full bg-[#0a0f2b] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/60 transition"
               />
             </div>
 
-            {/* Toggle Mode Option Button */}
+            {/* Export Excel Button */}
+            <button
+              type="button"
+              onClick={exportToExcel}
+              className="px-4 py-2.5 text-xs font-bold rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 hover:text-emerald-300 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
+            >
+              <FaFileExcel className="text-sm" /> Export Excel
+            </button>
+
+            {/* Toggle Mode Button */}
             <button
               type="button"
               onClick={() => setShowRequests((prev) => !prev)}
@@ -353,7 +420,7 @@ const ActivePlans = () => {
           </div>
         </div>
 
-        {/* Master Data Grid / Card Core Wrapper */}
+        {/* Table Wrapper */}
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
@@ -373,11 +440,15 @@ const ActivePlans = () => {
               <tbody className="divide-y divide-white/5 text-xs text-slate-300 font-medium">
                 {currentItems.length > 0 ? (
                   currentItems.map((plan, index) => (
-                    <tr key={plan.id} onClick={() => {
-    if (!showRequests) {
-      handleView(plan);
-    }
-  }} className="hover:bg-white/[0.02] transition duration-150">
+                    <tr 
+                      key={plan.id} 
+                      onClick={() => {
+                        if (!showRequests) {
+                          handleView(plan);
+                        }
+                      }} 
+                      className="hover:bg-white/[0.02] transition duration-150 cursor-pointer"
+                    >
                       <td className="py-4 px-6 text-center text-slate-500 font-mono">
                         {String((currentPage - 1) * rowsPerPage + index + 1).padStart(2, '0')}
                       </td>
@@ -474,7 +545,7 @@ const ActivePlans = () => {
             </table>
           </div>
 
-          {/* Luxury Custom Matrix Pagination Navigation Panel Footer */}
+          {/* Matrix Pagination Footer */}
           <div className="bg-[#0b102e]/50 border-t border-white/10 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5 text-xs text-slate-400">
               <span>Rows visible per frame</span>
