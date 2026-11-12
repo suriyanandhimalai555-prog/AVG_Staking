@@ -525,11 +525,10 @@ const UserDashboard = () => {
       </div>
 
       {/* WEBSITE ANNOUNCEMENT POPUP */}
-      {showPopup && (
+      {/* {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in duration-300">
           <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 sm:p-8 space-y-6 relative">
             
-            {/* Close Button */}
             <button
               onClick={handleIgnore}
               className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition cursor-pointer"
@@ -537,7 +536,6 @@ const UserDashboard = () => {
               <FaTimes className="text-sm" />
             </button>
 
-            {/* Icon & Heading */}
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-2xl bg-[#0437cc]/10 text-[#0437cc] flex items-center justify-center text-xl shrink-0 shadow-inner">
                 <FaBell />
@@ -552,7 +550,6 @@ const UserDashboard = () => {
               </div>
             </div>
 
-            {/* Message Body */}
             <div className="space-y-3 text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
               <p>
                 Please note that payouts will not be processed on <span className="font-bold text-slate-900">November 6th, 7th, 8th, and 9th</span>. Regular payouts will resume right after this period.
@@ -565,7 +562,6 @@ const UserDashboard = () => {
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-2.5 pt-2">
               <button
                 onClick={handleDontShowAgain}
@@ -583,7 +579,7 @@ const UserDashboard = () => {
 
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
