@@ -3,6 +3,7 @@ import { pool } from "../config/db.js";
 import bcrypt from "bcrypt";
 
 /* GET ALL USERS (admin) */
+/* GET ALL USERS (admin - with stats & referral info for UI & Excel export) */
 export const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(`
@@ -12,21 +13,97 @@ export const getAllUsers = async (req, res) => {
         u.name,
         u.email,
         u.phone,
+        u.referred_by,
         u.created_at,
         u.role,
         u.status AS login_status,
 
-        CASE
-          WHEN COUNT(up.id) > 0 THEN true
-          ELSE false
-        END AS has_active_plan
+        EXISTS (
+          SELECT 1
+          FROM user_plans up_act
+          WHERE up_act.user_id = u.id
+            AND up_act.status = 'active'
+        ) AS has_active_plan,
+
+        COALESCE(dep.total_deposit, 0)::numeric(14,2) AS total_deposit,
+        COALESCE(wd.total_withdrawal, 0)::numeric(14,2) AS total_withdrawal,
+        COALESCE(roi.total_roi, 0)::numeric(14,2) AS roi_income,
+        COALESCE(lvl.total_level_income, 0)::numeric(14,2) AS level_income,
+        COALESCE(dir.total_direct_income, 0)::numeric(14,2) AS direct_income,
+
+        -- Referrer info (checks referrals table first, fallback to users.referred_by code)
+        COALESCE(ref_info.referrer_name, ref_by_code.name, '-') AS referred_by_name,
+        COALESCE(ref_info.referrer_code, u.referred_by, '-') AS referred_by_code,
+
+        -- How many users this user has referred
+        COALESCE(ref_cnt.referred_count, 0)::int AS referred_count,
+
+        -- Calculated available wallet balance (adjust formula if your app uses a separate wallet table/deductions)
+        COALESCE(
+          (
+            COALESCE(roi.total_roi, 0)
+            + COALESCE(lvl.total_level_income, 0)
+            + COALESCE(dir.total_direct_income, 0)
+            - COALESCE(wd.total_withdrawal, 0)
+          ),
+          0
+        )::numeric(14,2) AS wallet_balance
 
       FROM users u
-      LEFT JOIN user_plans up
-        ON up.user_id = u.id
-        AND up.status = 'active'
 
-      GROUP BY u.id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(amount), 0) AS total_deposit
+        FROM user_plans
+        WHERE user_id = u.id
+      ) dep ON true
+
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(amount), 0) AS total_withdrawal
+        FROM withdrawals
+        WHERE user_id = u.id
+          AND COALESCE(LOWER(status), '') NOT IN ('rejected', 'cancelled', 'failed')
+      ) wd ON true
+
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(amount), 0) AS total_roi
+        FROM roi_transactions
+        WHERE user_id = u.id
+      ) roi ON true
+
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(amount), 0) AS total_level_income
+        FROM level_income
+        WHERE user_id = u.id
+          AND income_type = 'level'
+      ) lvl ON true
+
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(amount), 0) AS total_direct_income
+        FROM level_income
+        WHERE user_id = u.id
+          AND income_type IN ('direct', 'plan_direct')
+      ) dir ON true
+
+      LEFT JOIN LATERAL (
+        SELECT
+          ref_u.name AS referrer_name,
+          ref_u.user_code AS referrer_code
+        FROM referrals r
+        JOIN users ref_u ON ref_u.id = r.referrer_user_id
+        WHERE r.referred_user_id = u.id
+        ORDER BY r.id ASC
+        LIMIT 1
+      ) ref_info ON true
+
+      LEFT JOIN users ref_by_code
+        ON ref_by_code.user_code = u.referred_by
+
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*) AS referred_count
+        FROM referrals r2
+        WHERE r2.referrer_user_id = u.id
+      ) ref_cnt ON true
+
       ORDER BY u.id DESC
     `);
 
